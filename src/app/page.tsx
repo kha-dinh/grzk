@@ -1,4 +1,4 @@
-import ZkGraph from "./ZkGraphSvg";
+import ZkGraph from "./ZkGraph";
 
 export default function Home() {
   return (

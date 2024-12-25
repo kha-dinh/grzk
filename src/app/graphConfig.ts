@@ -1,13 +1,30 @@
-import ZkGraph from "./ZkGraphSvg";
-import GraphControls from "./GraphControl";
+
+type NodeConfig = {}
+type LinkConfig = {}
+type ForceConfig = {}
+type ZoomConfig = {}
+type BackgroundConfig = {}
+type OpenerConfig = {
+  program: string
+}
+
+export type Config = {
+  node: NodeConfig,
+  link: LinkConfig
+  force: ForceConfig,
+  zoom: ZoomConfig,
+  opener: OpenerConfig,
+  background: BackgroundConfig,
+}
 
 
-const defaultConfig = {
+export const defaultConfig: Config = {
   node: {
     baseRadius: 7,
     radiusMultiplier: 0.5,
     fill: "#1f77b4",
     tagFill: "#cc77cc",
+    tagHighlightFill: "#ff77ff",
     highlightFill: "#ff6b6b", // Highlight color for nodes
     fontSize: 0,
     hoverFontSize: 25,
@@ -26,7 +43,7 @@ const defaultConfig = {
     highlightOpacity: 1,
     arrowSize: 3, // Size of the arrow marker
   },
-  forces: {
+  force: {
     centerForce: 0.2, // How strongly nodes are pulled to the center (0-1)
     repelForce: -500, // How strongly nodes push away from each other
     linkForce: 0.3, // How strongly connected nodes pull together (0-1)
@@ -37,13 +54,10 @@ const defaultConfig = {
     max: 10,
     defaultScale: 0.4,
   },
+  opener: {
+    program: "neovide"
+  }, // Open configuration object with opener property
+  background: {
+    color: "#ffffee"
+  }
 };
-
-function InterfactiveGraph() {
-  return (
-    <div className="space-y-4">
-      <ConfigSliders onConfigUpdate={handleConfigUpdate} />
-      )
-}
-
-      export default InterfactiveGraph;

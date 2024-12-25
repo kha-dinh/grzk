@@ -1,47 +1,10 @@
 "use client";
 
-import { useD3 } from "./useD3";
+import { useFuzzySearchList, Highlight } from '@nozbe/microfuzz/react'
 import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
-import ConfigSliders from "./GraphControl";
-//
-// Configuration object for graph settings
-const defaultConfig = {
-  node: {
-    baseRadius: 7,
-    radiusMultiplier: 0.5,
-    fill: "#1f77b4",
-    tagFill: "#cc77cc",
-    highlightFill: "#ff6b6b", // Highlight color for nodes
-    fontSize: 0,
-    hoverFontSize: 25,
-    textColor: "#333333", // Added text color configuration
-    textYOffset: 30, // Added offset for text below node
-    dimOpacity: 0.2,
-    highlightOpacity: 1,
-    transitionDuration: 300,
-  },
-  link: {
-    stroke: "#999",
-    highlightStroke: "#ff6b6b",
-    opacity: 1,
-    strength: 2,
-    dimOpacity: 0.2,
-    highlightOpacity: 1,
-    arrowSize: 3, // Size of the arrow marker
-  },
-  forces: {
-    centerForce: 0.2, // How strongly nodes are pulled to the center (0-1)
-    repelForce: -500, // How strongly nodes push away from each other
-    linkForce: 0.3, // How strongly connected nodes pull together (0-1)
-    linkDistance: 50, // Base distance between connected nodes
-  },
-  zoom: {
-    min: 0.1,
-    max: 10,
-    defaultScale: 0.4,
-  },
-};
+import ConfigControl from "./GraphControl";
+import { defaultConfig } from "./graphConfig.ts";
 
 class GraphVisualizer {
   constructor(svg, config, rawData, tags) {
@@ -100,8 +63,8 @@ class GraphVisualizer {
       ...note,
       type: "note",
       connections: connectionCounts[note.path] || 0,
-      active: defaultConfig.node.highlightFill,
-      inactive: defaultConfig.node.fill,
+      active: this.config.node.highlightFill,
+      inactive: this.config.node.fill,
     }));
 
     tags.map((tag) => {
@@ -116,8 +79,8 @@ class GraphVisualizer {
         type: "tag",
         id: 999,
         path: tag.name,
-        active: defaultConfig.node.highlightFill,
-        inactive: defaultConfig.node.tagFill,
+        active: this.config.node.tagHighlightFill,
+        inactive: this.config.node.tagFill,
       };
       nodes.push(tagNode);
       tagLinks.map((note) => {
@@ -152,21 +115,21 @@ class GraphVisualizer {
           // Normalize connections to get a value between 0 and 1
           const connectionStrength = d.connections / maxConnections;
           // More connections = stronger pull to center
-          return defaultConfig.forces.centerForce * (1 + connectionStrength);
+          return this.config.force.centerForce * (1 + connectionStrength);
         }),
       )
       .force(
         "y",
         d3.forceY().strength((d) => {
           const connectionStrength = d.connections / maxConnections;
-          return defaultConfig.forces.centerForce * (1 + connectionStrength);
+          return this.config.force.centerForce * (1 + connectionStrength);
         }),
       )
 
       // Repel force - pushes nodes away from each other
       .force(
         "charge",
-        d3.forceManyBody().strength(defaultConfig.forces.repelForce),
+        d3.forceManyBody().strength(this.config.force.repelForce),
       )
 
       // Link force - maintains connections between nodes
@@ -175,8 +138,8 @@ class GraphVisualizer {
         d3
           .forceLink(data.links)
           .id((d) => d.path)
-          .strength(defaultConfig.forces.linkForce)
-          .distance(defaultConfig.forces.linkDistance),
+          .strength(this.config.force.linkForce)
+          .distance(this.config.force.linkDistance),
       );
 
     // These x and y forces are now handled in the center force above
@@ -205,7 +168,7 @@ class GraphVisualizer {
 
     const zoom = d3
       .zoom()
-      .scaleExtent([defaultConfig.zoom.min, defaultConfig.zoom.max])
+      .scaleExtent([this.config.zoom.min, this.config.zoom.max])
       .on("zoom", (event) => {
         this.zoomGroup.attr("transform", event.transform);
       });
@@ -216,7 +179,7 @@ class GraphVisualizer {
         zoom.transform,
         d3.zoomIdentity
           .translate(width / 2, height / 2)
-          .scale(defaultConfig.zoom.defaultScale),
+          .scale(this.config.zoom.defaultScale),
       );
   }
 
@@ -227,8 +190,8 @@ class GraphVisualizer {
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", defaultConfig.link.stroke)
-      .attr("stroke-opacity", defaultConfig.link.opacity)
+      .attr("stroke", this.config.link.stroke)
+      .attr("stroke-opacity", this.config.link.opacity)
       .attr("stroke-width", 2);
   }
 
@@ -247,10 +210,10 @@ class GraphVisualizer {
       .attr(
         "r",
         (d) =>
-          defaultConfig.node.baseRadius +
-          d.connections * defaultConfig.node.radiusMultiplier,
+          this.config.node.baseRadius +
+          d.connections * this.config.node.radiusMultiplier,
       )
-      .attr("fill", defaultConfig.node.fill);
+      .attr("fill", this.config.node.fill);
 
     container
       .filter((d) => d.type == "tag")
@@ -258,10 +221,10 @@ class GraphVisualizer {
       .attr(
         "r",
         (d) =>
-          defaultConfig.node.baseRadius +
-          d.connections * defaultConfig.node.radiusMultiplier,
+          this.config.node.baseRadius +
+          d.connections * this.config.node.radiusMultiplier,
       )
-      .attr("fill", defaultConfig.node.tagFill);
+      .attr("fill", this.config.node.tagFill);
 
     // Add labels to nodes with updated positioning and color
     container
@@ -269,13 +232,13 @@ class GraphVisualizer {
       .attr(
         "dy",
         (d) =>
-          defaultConfig.node.baseRadius +
-          d.connections * defaultConfig.node.radiusMultiplier +
-          defaultConfig.node.textYOffset,
+          this.config.node.baseRadius +
+          d.connections * this.config.node.radiusMultiplier +
+          this.config.node.textYOffset,
       )
       .attr("text-anchor", "middle") // Center the text below the node
-      .style("fill", defaultConfig.node.textColor) // Set text color
-      .style("font-size", defaultConfig.node.fontSize)
+      .style("fill", this.config.node.textColor) // Set text color
+      .style("font-size", this.config.node.fontSize)
       .style("opacity", 0)
       .text((d) => d.title);
 
@@ -352,13 +315,13 @@ class GraphVisualizer {
           .selectAll(".nodes g")
           .style(
             "transition",
-            `opacity ${defaultConfig.node.transitionDuration}ms`,
+            `opacity ${this.config.node.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.node.dimOpacity)
+          .style("opacity", this.config.node.dimOpacity)
           .select("circle")
           .style(
             "transition",
-            `fill ${defaultConfig.node.transitionDuration}ms`,
+            `fill ${this.config.node.transitionDuration}ms`,
           );
         // .style("fill", d.active);
 
@@ -368,15 +331,15 @@ class GraphVisualizer {
           .filter((n) => n.path === d.path || connectedNodes.has(n.path))
           .style(
             "transition",
-            `opacity ${defaultConfig.node.transitionDuration}ms`,
+            `opacity ${this.config.node.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.node.highlightOpacity)
+          .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
           .style(
             "transition",
-            `fill ${defaultConfig.node.transitionDuration}ms`,
+            `fill ${this.config.node.transitionDuration}ms`,
           )
-          .style("fill", d.active);
+          .style("fill", (n) => n.active);
 
         // Show text for hovered node only
         d3.select(event.currentTarget)
@@ -386,17 +349,17 @@ class GraphVisualizer {
           //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
           // )
           .style("opacity", 1)
-          .style("font-size", defaultConfig.node.hoverFontSize);
+          .style("font-size", this.config.node.hoverFontSize);
 
         // Dim all links
         this.zoomGroup
           .selectAll(".links line")
           .style(
             "transition",
-            `opacity ${defaultConfig.link.transitionDuration}ms, stroke ${defaultConfig.link.transitionDuration}ms, stroke-width ${defaultConfig.link.transitionDuration}ms`,
+            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.link.dimOpacity)
-          .style("stroke", defaultConfig.link.stroke)
+          .style("opacity", this.config.link.dimOpacity)
+          .style("stroke", this.config.link.stroke)
           .style("stroke-width", 1);
 
         // Highlight connected links
@@ -405,10 +368,10 @@ class GraphVisualizer {
           .filter((l) => connectedLinks.has(l))
           .style(
             "transition",
-            `opacity ${defaultConfig.link.transitionDuration}ms, stroke ${defaultConfig.link.transitionDuration}ms, stroke-width ${defaultConfig.link.transitionDuration}ms`,
+            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.link.highlightOpacity)
-          .style("stroke", defaultConfig.link.highlightStroke)
+          .style("opacity", this.config.link.highlightOpacity)
+          .style("stroke", this.config.link.highlightStroke)
           .style("stroke-width", 2);
       })
       .on("mouseout", (event) => {
@@ -419,13 +382,13 @@ class GraphVisualizer {
           .selectAll(".nodes g")
           .style(
             "transition",
-            `opacity ${defaultConfig.node.transitionDuration}ms`,
+            `opacity ${this.config.node.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.node.highlightOpacity)
+          .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
           .style(
             "transition",
-            `fill ${defaultConfig.node.transitionDuration}ms`,
+            `fill ${this.config.node.transitionDuration}ms`,
           )
           .style("fill", (d) => d.inactive);
 
@@ -437,17 +400,17 @@ class GraphVisualizer {
           //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
           // )
           .style("opacity", 0)
-          .style("font-size", defaultConfig.node.fontSize);
+          .style("font-size", this.config.node.fontSize);
 
         // Reset all links
         this.zoomGroup
           .selectAll(".links line")
           .style(
             "transition",
-            `opacity ${defaultConfig.link.transitionDuration}ms, stroke ${defaultConfig.link.transitionDuration}ms, stroke-width ${defaultConfig.link.transitionDuration}ms`,
+            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
           )
-          .style("opacity", defaultConfig.link.opacity)
-          .style("stroke", defaultConfig.link.stroke)
+          .style("opacity", this.config.link.opacity)
+          .style("stroke", this.config.link.stroke)
           .style("stroke-width", 1);
       })
       .on("click", this.handleNodeClick);
@@ -456,7 +419,7 @@ class GraphVisualizer {
   handleNodeClick(event) {
     const file = event.srcElement.__data__.absPath;
     const request = new XMLHttpRequest();
-    request.open("GET", document.URL + "open" + "?file=" + file, false);
+    request.open("GET", "http://localhost:3000/api/open?file=" + file, false);
     request.send();
   }
 
@@ -475,8 +438,6 @@ class GraphVisualizer {
 
 function ZkGraph() {
   const [graphInstance, setGraphInstance] = useState(null);
-  // const [rawData, setRawData] = useState(null);
-  // const [tags, setTags] = useState(null);
   const refSvg = useRef(null)
 
   useEffect(() => {
@@ -486,56 +447,58 @@ function ZkGraph() {
       const fetchTags = await d3.json("http://localhost:3000/api/tag");
       // console.log(fetchData);
       // console.log(fetchTags);
-      const newGraph = new GraphVisualizer(svg, null, fetchData, fetchTags);
+      const newGraph = new GraphVisualizer(svg, defaultConfig, fetchData, fetchTags);
       newGraph.initialize();
       setGraphInstance(newGraph);
     }
     fetchData();
-    // setRawData(rawData)
-    // console.log(fetch);
     return () => { };
   }, [])
 
-
-  // const ref = useD3((svg) => {
-  //   const newGraph = new GraphVisualizer(ref);
-  //   newGraph.initialize("graph.json", "tags.json", svg);
-  //   setGraphInstance(newGraph);
-  // }, []);
-  //
   const handleConfigUpdate = (newConfig) => {
     if (!graphInstance) return;
 
-    // Update forces
     graphInstance.simulation
-      .force("x", d3.forceX().strength(newConfig.forces.centerForce))
-      .force("y", d3.forceY().strength(newConfig.forces.centerForce))
-      .force("charge", d3.forceManyBody().strength(newConfig.forces.repelForce))
+      .force("x", d3.forceX().strength(newConfig.force.centerForce))
+      .force("y", d3.forceY().strength(newConfig.force.centerForce))
+      .force("charge", d3.forceManyBody().strength(newConfig.force.repelForce))
       .force(
         "link",
         graphInstance.simulation
           .force("link")
-          .strength(newConfig.forces.linkForce)
-          .distance(newConfig.forces.linkDistance),
+          .strength(newConfig.force.linkForce)
+          .distance(newConfig.force.linkDistance),
       );
 
-    // Update node sizes
-    graphInstance.zoomGroup
-      .selectAll(".nodes circle")
-      .attr(
-        "r",
-        (d) =>
-          newConfig.node.baseRadius +
-          d.connections * newConfig.node.radiusMultiplier,
-      );
+    // graphInstance.zoomGroup
+    //   .selectAll(".nodes circle")
+    //   .attr(
+    //     "r",
+    //     (d) =>
+    //       newConfig.node.baseRadius +
+    //       d.connections * newConfig.node.radiusMultiplier,
+    //   );
 
     // Restart simulation
     graphInstance.simulation.alpha(0.3).restart();
   };
 
+
+  const handleFilterUpdate = (newFilter) => {
+    const filteredList = useFuzzySearchList({
+      list,
+      // If `queryText` is blank, `list` is returned in whole
+      queryText,
+      // optional `getText` or `key`, same as with `createFuzzySearch`
+      getText: (item) => [item.name],
+      // arbitrary mapping function, takes `FuzzyResult<T>` as input
+      // mapResultItem: ({ item, score, matches: [highlightRanges] }) => ({ item, highlightRanges })
+    })
+  }
+
   return (
     <>
-      {/* <ConfigSliders onConfigUpdate={handleConfigUpdate} /> */}
+      <ConfigControl onConfigUpdate={handleConfigUpdate} onFilterUpdate={handleFilterUpdate} />
       <div className="graph-container">
         <svg
           ref={refSvg}
@@ -543,6 +506,7 @@ function ZkGraph() {
             height: "100vh",
             width: "100%",
             position: "fixed",
+            backgroundColor: defaultConfig.background.color,
             top: 0,
             left: 0,
           }}

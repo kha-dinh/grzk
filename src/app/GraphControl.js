@@ -1,4 +1,7 @@
+"use client"
 import React, { useState, useEffect } from "react";
+
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   GripVertical,
@@ -7,37 +10,30 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { defaultConfig } from "./graphConfig";
 
 const getStoredPosition = () => {
-  const stored = localStorage.getItem("configSliderPosition");
+
+  let stored = undefined;
+  if (global?.window !== undefined) {
+    stored = localStorage.getItem("configSliderPosition");
+  }
   return stored ? JSON.parse(stored) : { x: 20, y: 20 };
 };
 
-const ConfigSliders = ({ onConfigUpdate }) => {
-  const [config, setConfig] = useState({
-    forces: {
-      centerForce: 0.2,
-      repelForce: -500,
-      linkForce: 0.3,
-      linkDistance: 50,
-    },
-    node: {
-      baseRadius: 7,
-      radiusMultiplier: 0.5,
-    },
-    zoom: {
-      defaultScale: 0.4,
-    },
-  });
 
+
+const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
+  const [config, setConfig] = useState(defaultConfig)
   const [position, setPosition] = useState(getStoredPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isMinimized, setIsMinimized] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    forces: true,
+    force: true,
     nodes: true,
     zoom: true,
+    filter: true,
   });
 
   // Save position to localStorage when it changes
@@ -111,7 +107,7 @@ const ConfigSliders = ({ onConfigUpdate }) => {
   const SectionHeader = ({ title, section }) => (
     <button
       onClick={() => toggleSection(section)}
-      className="flex items-center gap-2 w-full hover:bg-gray-50 p-1 rounded select-none"
+      className="flex items-center gap-1 w-full hover:bg-gray-50 p-1 rounded select-none"
     >
       {expandedSections[section] ? (
         <ChevronDown className="w-4 h-4" />
@@ -135,6 +131,7 @@ const ConfigSliders = ({ onConfigUpdate }) => {
       }}
     >
       <Card
+        suppressHydrationWarning
         className="absolute shadow-lg bg-white/95 backdrop-blur-sm"
         style={{
           left: position.x,
@@ -147,7 +144,7 @@ const ConfigSliders = ({ onConfigUpdate }) => {
           className="handle cursor-grab active:cursor-grabbing p-2 flex flex-row items-center justify-between select-none"
           onMouseDown={handleMouseDown}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <GripVertical className="w-4 h-4" />
             <CardTitle className="text-sm">Graph Configuration</CardTitle>
           </div>
@@ -167,22 +164,64 @@ const ConfigSliders = ({ onConfigUpdate }) => {
           <CardContent className="p-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <SectionHeader title="Forces" section="forces" />
-                {expandedSections.forces && (
-                  <div className="grid gap-4 pl-6">
+                <SectionHeader title="Filter" section="filter" />
+                {expandedSections.filter && (
+                  <div className="grid gap-2 pl-6">
                     <div>
                       <label className="block text-xs mb-1">
-                        Center Force: {config.forces.centerForce}
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        // value={config.filter.centerForce}
+                        // onChange={(e) =>
+                        //   handleSliderChange(
+                        //     "force",
+                        //     "centerForce",
+                        //     e.target.value,
+                        //   )
+                        // }
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        // value={config.filter.centerForce}
+                        // onChange={(e) =>
+                        //   handleSliderChange(
+                        //     "force",
+                        //     "centerForce",
+                        //     e.target.value,
+                        //   )
+                        // }
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                )}
+              </div>
+              <div className="space-y-2">
+                <SectionHeader title="Force" section="force" />
+                {expandedSections.force && (
+                  <div className="grid gap-2 pl-6">
+                    <div>
+                      <label className="block text-xs mb-1">
+                        Center Force: {config.force.centerForce}
                       </label>
                       <input
                         type="range"
                         min="0"
                         max="1"
                         step="0.1"
-                        value={config.forces.centerForce}
+                        value={config.force.centerForce}
                         onChange={(e) =>
                           handleSliderChange(
-                            "forces",
+                            "force",
                             "centerForce",
                             e.target.value,
                           )
@@ -192,17 +231,17 @@ const ConfigSliders = ({ onConfigUpdate }) => {
                     </div>
                     <div>
                       <label className="block text-xs mb-1">
-                        Repel Force: {config.forces.repelForce}
+                        Repel Force: {config.force.repelForce}
                       </label>
                       <input
                         type="range"
                         min="-1000"
                         max="0"
                         step="50"
-                        value={config.forces.repelForce}
+                        value={config.force.repelForce}
                         onChange={(e) =>
                           handleSliderChange(
-                            "forces",
+                            "force",
                             "repelForce",
                             e.target.value,
                           )
@@ -212,17 +251,17 @@ const ConfigSliders = ({ onConfigUpdate }) => {
                     </div>
                     <div>
                       <label className="block text-xs mb-1">
-                        Link Force: {config.forces.linkForce}
+                        Link Force: {config.force.linkForce}
                       </label>
                       <input
                         type="range"
                         min="0"
                         max="1"
                         step="0.1"
-                        value={config.forces.linkForce}
+                        value={config.force.linkForce}
                         onChange={(e) =>
                           handleSliderChange(
-                            "forces",
+                            "force",
                             "linkForce",
                             e.target.value,
                           )
@@ -232,17 +271,17 @@ const ConfigSliders = ({ onConfigUpdate }) => {
                     </div>
                     <div>
                       <label className="block text-xs mb-1">
-                        Link Distance: {config.forces.linkDistance}
+                        Link Distance: {config.force.linkDistance}
                       </label>
                       <input
                         type="range"
                         min="10"
                         max="200"
                         step="10"
-                        value={config.forces.linkDistance}
+                        value={config.force.linkDistance}
                         onChange={(e) =>
                           handleSliderChange(
-                            "forces",
+                            "force",
                             "linkDistance",
                             e.target.value,
                           )
@@ -257,7 +296,7 @@ const ConfigSliders = ({ onConfigUpdate }) => {
               <div className="space-y-2">
                 <SectionHeader title="Nodes" section="nodes" />
                 {expandedSections.nodes && (
-                  <div className="grid gap-4 pl-6">
+                  <div className="grid gap-2 pl-6">
                     <div>
                       <label className="block text-xs mb-1">
                         Base Radius: {config.node.baseRadius}
@@ -335,4 +374,4 @@ const ConfigSliders = ({ onConfigUpdate }) => {
   );
 };
 
-export default ConfigSliders;
+export default ConfigControl;
