@@ -1,11 +1,49 @@
-// import ZkGraph from "./ZkGraphSvg";
-// import GraphControls from "./GraphControl";
-//
-// function InterfactiveGraph() {
-//   return (
-//     <div className="space-y-4">
-//       <ConfigSliders onConfigUpdate={handleConfigUpdate} />
-//   )
-// }
-//
-// export default InterfactiveGraph;
+import ZkGraph from "./ZkGraphSvg";
+import GraphControls from "./GraphControl";
+
+
+const defaultConfig = {
+  node: {
+    baseRadius: 7,
+    radiusMultiplier: 0.5,
+    fill: "#1f77b4",
+    tagFill: "#cc77cc",
+    highlightFill: "#ff6b6b", // Highlight color for nodes
+    fontSize: 0,
+    hoverFontSize: 25,
+    textColor: "#333333", // Added text color configuration
+    textYOffset: 30, // Added offset for text below node
+    dimOpacity: 0.2,
+    highlightOpacity: 1,
+    transitionDuration: 300,
+  },
+  link: {
+    stroke: "#999",
+    highlightStroke: "#ff6b6b",
+    opacity: 1,
+    strength: 2,
+    dimOpacity: 0.2,
+    highlightOpacity: 1,
+    arrowSize: 3, // Size of the arrow marker
+  },
+  forces: {
+    centerForce: 0.2, // How strongly nodes are pulled to the center (0-1)
+    repelForce: -500, // How strongly nodes push away from each other
+    linkForce: 0.3, // How strongly connected nodes pull together (0-1)
+    linkDistance: 50, // Base distance between connected nodes
+  },
+  zoom: {
+    min: 0.1,
+    max: 10,
+    defaultScale: 0.4,
+  },
+};
+
+function InterfactiveGraph() {
+  return (
+    <div className="space-y-4">
+      <ConfigSliders onConfigUpdate={handleConfigUpdate} />
+      )
+}
+
+      export default InterfactiveGraph;
