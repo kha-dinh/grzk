@@ -1,16 +1,12 @@
 "use client";
 
 import { useD3 } from "./useD3";
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigSliders from "./GraphControl";
 //
 // Configuration object for graph settings
 const defaultConfig = {
-  // dimensions: {
-  //   width: 1200,
-  //   height: 1200,
-  // },
   node: {
     baseRadius: 7,
     radiusMultiplier: 0.5,
@@ -48,22 +44,20 @@ const defaultConfig = {
 };
 
 class GraphVisualizer {
-  constructor(containerId) {
-    this.containerId = containerId;
-    this.svg = null;
+  constructor(svg, config, rawData, tags) {
+    this.svg = svg;
+    this.config = config;
+    this.rawData = rawData;
+    this.tags = tags;
     this.simulation = null;
     this.zoomGroup = null;
     this.nodes = null;
     this.links = null;
   }
 
-  async initialize(dataUrl, tagsUrl, svg) {
+  async initialize() {
     try {
-      const graphData = await d3.json(dataUrl);
-      const tags = await d3.json("tags.json");
-      this.svg = svg;
-
-      const processedData = this.processGraphData(graphData, tags);
+      const processedData = this.processGraphData(this.rawData, this.tags);
       this.setupSimulation(processedData);
       this.createVisualization(processedData);
       this.setupZoom();
@@ -481,11 +475,34 @@ class GraphVisualizer {
 
 function ZkGraph() {
   const [graphInstance, setGraphInstance] = useState(null);
-  const ref = useD3((svg) => {
-    const newGraph = new GraphVisualizer(ref);
-    newGraph.initialize("graph.json", "tags.json", svg);
-    setGraphInstance(newGraph);
-  }, []);
+  // const [rawData, setRawData] = useState(null);
+  // const [tags, setTags] = useState(null);
+  const refSvg = useRef(null)
+
+  useEffect(() => {
+    const svg = d3.select(refSvg.current);
+    async function fetchData() {
+      const fetchData = await d3.json("http://localhost:3000/api/graph");
+      const fetchTags = await d3.json("http://localhost:3000/api/tag");
+      // console.log(fetchData);
+      // console.log(fetchTags);
+      const newGraph = new GraphVisualizer(svg, null, fetchData, fetchTags);
+      newGraph.initialize();
+      setGraphInstance(newGraph);
+    }
+    fetchData();
+    // setRawData(rawData)
+    // console.log(fetch);
+    return () => { };
+  }, [])
+
+
+  // const ref = useD3((svg) => {
+  //   const newGraph = new GraphVisualizer(ref);
+  //   newGraph.initialize("graph.json", "tags.json", svg);
+  //   setGraphInstance(newGraph);
+  // }, []);
+  //
   const handleConfigUpdate = (newConfig) => {
     if (!graphInstance) return;
 
@@ -518,10 +535,10 @@ function ZkGraph() {
 
   return (
     <>
-      <ConfigSliders onConfigUpdate={handleConfigUpdate} />
+      {/* <ConfigSliders onConfigUpdate={handleConfigUpdate} /> */}
       <div className="graph-container">
         <svg
-          ref={ref}
+          ref={refSvg}
           style={{
             height: "100vh",
             width: "100%",
