@@ -97,6 +97,10 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
     onConfigUpdate(newConfig);
   };
 
+  const handleFilterChange = (value) => {
+    onFilterUpdate(value);
+  };
+
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -174,13 +178,11 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
                       <input
                         type="text"
                         // value={config.filter.centerForce}
-                        // onChange={(e) =>
-                        //   handleSliderChange(
-                        //     "force",
-                        //     "centerForce",
-                        //     e.target.value,
-                        //   )
-                        // }
+                        onChange={(e) =>
+                          handleFilterChange(
+                            e.target.value,
+                          )
+                        }
                         className="w-full"
                       />
                     </div>

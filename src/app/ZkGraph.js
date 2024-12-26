@@ -5,6 +5,7 @@ import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { defaultConfig } from "./graphConfig.ts";
+import createFuzzySearch from '@nozbe/microfuzz';
 
 class GraphVisualizer {
   constructor(svg, config, rawData, tags) {
@@ -18,7 +19,7 @@ class GraphVisualizer {
     this.links = null;
   }
 
-  async initialize() {
+  async initialize(filter) {
     try {
       const processedData = this.processGraphData(this.rawData, this.tags);
       this.setupSimulation(processedData);
@@ -29,6 +30,63 @@ class GraphVisualizer {
     }
   }
 
+  filterNodes(filter) {
+    // console.log(filter)
+    if (!filter) {
+      // Not much to do 
+      this.nodes.attr("hidden", null);
+      this.links.attr("hidden", null);
+      return;
+    }
+    const tagNodes =
+      this.nodes.filter((d) => d.type == "tag").nodes().map((item) => item.__data__);
+    const fuzzySearch = createFuzzySearch(
+      this.nodes.filter((d) => d.type != "tag").nodes()
+      , {
+        // search by `name` property
+        // key: "title",
+        // search by `description.text` property
+        getText: (item) => [item.__data__.title],
+        // search by multiple properties:
+        // getText: (item) => [item.name, item.description.text]
+      })
+
+
+    let selectedNodes = fuzzySearch(filter).map((item) => item.item.__data__);
+    console.log(tagNodes)
+    selectedNodes = selectedNodes.concat(tagNodes)
+
+    // Links that are hidden
+    let filteredLinks = new Set();
+
+    this.nodes
+      .filter((d) => !selectedNodes.includes(d))
+      .attr("hidden", true)
+      .each((d) => {
+        // Hide connected links
+        this.links
+          .filter((link) =>
+            link.source.path === d.path || link.target.path === d.path
+          )
+          .attr("hidden", true)
+          .each((link) => filteredLinks.add(link));
+
+      });
+
+    this.nodes
+      .filter((d) => selectedNodes.includes(d))
+      .attr("hidden", null);
+    this.links
+      .filter((link) => !filteredLinks.has(link))
+      .attr("hidden", null);
+
+    // this.nodes.remove();
+    // this.links.remove();
+    // this.createVisualization({ nodes: newNodes, links: this.links });
+    // console.log(filter)
+    // console.log(selectedNodes);
+
+  }
   calculateConnectionCounts(nodes, links) {
     const counts = Object.fromEntries(nodes.map((node) => [node.path, 0]));
 
@@ -54,18 +112,21 @@ class GraphVisualizer {
         target: edge.targetPath,
       }));
 
+
     const connectionCounts = this.calculateConnectionCounts(
       rawData.notes,
       links,
     );
 
-    const nodes = rawData.notes.map((note) => ({
+    let nodes = rawData.notes.map((note) => ({
       ...note,
       type: "note",
       connections: connectionCounts[note.path] || 0,
       active: this.config.node.highlightFill,
       inactive: this.config.node.fill,
     }));
+
+    // }
 
     tags.map((tag) => {
       const tagLinks = rawData.notes.filter((note) =>
@@ -238,8 +299,8 @@ class GraphVisualizer {
       )
       .attr("text-anchor", "middle") // Center the text below the node
       .style("fill", this.config.node.textColor) // Set text color
-      .style("font-size", this.config.node.fontSize)
-      .style("opacity", 0)
+      .style("font-size", 0)
+      // .style("opacity", 0)
       .text((d) => d.title);
 
     // Add tooltips
@@ -341,15 +402,15 @@ class GraphVisualizer {
           )
           .style("fill", (n) => n.active);
 
-        // Show text for hovered node only
+        // Show text for hovered node
         d3.select(event.currentTarget)
           .select("text")
           // .style(
           //   "transition",
           //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
           // )
-          .style("opacity", 1)
-          .style("font-size", this.config.node.hoverFontSize);
+          // .attr("hidden", false)
+          .style("font-size", this.config.node.fontSize);
 
         // Dim all links
         this.zoomGroup
@@ -399,8 +460,7 @@ class GraphVisualizer {
           //   "transition",
           //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
           // )
-          .style("opacity", 0)
-          .style("font-size", this.config.node.fontSize);
+          .style("font-size", 0);
 
         // Reset all links
         this.zoomGroup
@@ -485,15 +545,7 @@ function ZkGraph() {
 
 
   const handleFilterUpdate = (newFilter) => {
-    const filteredList = useFuzzySearchList({
-      list,
-      // If `queryText` is blank, `list` is returned in whole
-      queryText,
-      // optional `getText` or `key`, same as with `createFuzzySearch`
-      getText: (item) => [item.name],
-      // arbitrary mapping function, takes `FuzzyResult<T>` as input
-      // mapResultItem: ({ item, score, matches: [highlightRanges] }) => ({ item, highlightRanges })
-    })
+    graphInstance.filterNodes(newFilter);
   }
 
   return (

@@ -26,8 +26,7 @@ export const defaultConfig: Config = {
     tagFill: "#cc77cc",
     tagHighlightFill: "#ff77ff",
     highlightFill: "#ff6b6b", // Highlight color for nodes
-    fontSize: 0,
-    hoverFontSize: 25,
+    fontSize: 25,
     textColor: "#333333", // Added text color configuration
     textYOffset: 30, // Added offset for text below node
     dimOpacity: 0.2,
