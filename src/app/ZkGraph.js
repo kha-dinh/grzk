@@ -36,6 +36,7 @@ class GraphVisualizer {
       // Not much to do 
       this.nodes.attr("hidden", null);
       this.links.attr("hidden", null);
+      this.setupSimulationTick(this.nodes, this.links);
       return;
     }
     const tagNodes =
@@ -53,7 +54,7 @@ class GraphVisualizer {
 
 
     let selectedNodes = fuzzySearch(filter).map((item) => item.item.__data__);
-    console.log(tagNodes)
+    // console.log(tagNodes)
     selectedNodes = selectedNodes.concat(tagNodes)
 
     // Links that are hidden
@@ -70,19 +71,21 @@ class GraphVisualizer {
           )
           .attr("hidden", true)
           .each((link) => filteredLinks.add(link));
-
       });
 
-    this.nodes
+    const newNodes = this.nodes
       .filter((d) => selectedNodes.includes(d))
       .attr("hidden", null);
-    this.links
+    const newLinks = this.links
       .filter((link) => !filteredLinks.has(link))
       .attr("hidden", null);
-
+    const selectedLinks = newLinks.nodes().map((item) => item.__data__);
     // this.nodes.remove();
     // this.links.remove();
-    // this.createVisualization({ nodes: newNodes, links: this.links });
+
+    // this.simulation.stop()
+    // this.setupSimulation({ nodes: selectedNodes, links: selectedLinks });
+    // this.setupSimulationTick(newNodes, newLinks);
     // console.log(filter)
     // console.log(selectedNodes);
 
@@ -209,7 +212,7 @@ class GraphVisualizer {
     this.simulation
       .alphaDecay(0.02) // Slower cooling
       .velocityDecay(0.2) // More momentum
-      .alpha(0.5)
+      .alpha(1)
       .restart();
   }
 
@@ -299,8 +302,8 @@ class GraphVisualizer {
       )
       .attr("text-anchor", "middle") // Center the text below the node
       .style("fill", this.config.node.textColor) // Set text color
-      .style("font-size", 0)
-      // .style("opacity", 0)
+      .style("font-size", this.config.node.fontSize)
+      .attr("hidden", true)
       .text((d) => d.title);
 
     // Add tooltips
@@ -405,12 +408,7 @@ class GraphVisualizer {
         // Show text for hovered node
         d3.select(event.currentTarget)
           .select("text")
-          // .style(
-          //   "transition",
-          //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
-          // )
-          // .attr("hidden", false)
-          .style("font-size", this.config.node.fontSize);
+          .attr("hidden", null);
 
         // Dim all links
         this.zoomGroup
@@ -460,7 +458,7 @@ class GraphVisualizer {
           //   "transition",
           //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
           // )
-          .style("font-size", 0);
+          .attr("hidden", true);
 
         // Reset all links
         this.zoomGroup
