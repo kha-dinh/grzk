@@ -1,11 +1,11 @@
 "use client";
 
-import { useFuzzySearchList, Highlight } from '@nozbe/microfuzz/react'
+import { useFuzzySearchList, Highlight } from "@nozbe/microfuzz/react";
 import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { defaultConfig } from "./graphConfig.ts";
-import createFuzzySearch from '@nozbe/microfuzz';
+import createFuzzySearch from "@nozbe/microfuzz";
 
 class GraphVisualizer {
   constructor(svg, config, rawData, tags) {
@@ -33,29 +33,31 @@ class GraphVisualizer {
   filterNodes(filter) {
     // console.log(filter)
     if (!filter) {
-      // Not much to do 
+      // Not much to do
       this.nodes.attr("hidden", null);
       this.links.attr("hidden", null);
       this.setupSimulationTick(this.nodes, this.links);
       return;
     }
-    const tagNodes =
-      this.nodes.filter((d) => d.type == "tag").nodes().map((item) => item.__data__);
+    const tagNodes = this.nodes
+      .filter((d) => d.type == "tag")
+      .nodes()
+      .map((item) => item.__data__);
     const fuzzySearch = createFuzzySearch(
-      this.nodes.filter((d) => d.type != "tag").nodes()
-      , {
+      this.nodes.filter((d) => d.type != "tag").nodes(),
+      {
         // search by `name` property
         // key: "title",
         // search by `description.text` property
         getText: (item) => [item.__data__.title],
         // search by multiple properties:
         // getText: (item) => [item.name, item.description.text]
-      })
-
+      },
+    );
 
     let selectedNodes = fuzzySearch(filter).map((item) => item.item.__data__);
     // console.log(tagNodes)
-    selectedNodes = selectedNodes.concat(tagNodes)
+    selectedNodes = selectedNodes.concat(tagNodes);
 
     // Links that are hidden
     let filteredLinks = new Set();
@@ -66,8 +68,9 @@ class GraphVisualizer {
       .each((d) => {
         // Hide connected links
         this.links
-          .filter((link) =>
-            link.source.path === d.path || link.target.path === d.path
+          .filter(
+            (link) =>
+              link.source.path === d.path || link.target.path === d.path,
           )
           .attr("hidden", true)
           .each((link) => filteredLinks.add(link));
@@ -88,7 +91,6 @@ class GraphVisualizer {
     // this.setupSimulationTick(newNodes, newLinks);
     // console.log(filter)
     // console.log(selectedNodes);
-
   }
   calculateConnectionCounts(nodes, links) {
     const counts = Object.fromEntries(nodes.map((node) => [node.path, 0]));
@@ -114,7 +116,6 @@ class GraphVisualizer {
         source: edge.sourcePath,
         target: edge.targetPath,
       }));
-
 
     const connectionCounts = this.calculateConnectionCounts(
       rawData.notes,
@@ -383,10 +384,7 @@ class GraphVisualizer {
           )
           .style("opacity", this.config.node.dimOpacity)
           .select("circle")
-          .style(
-            "transition",
-            `fill ${this.config.node.transitionDuration}ms`,
-          );
+          .style("transition", `fill ${this.config.node.transitionDuration}ms`);
         // .style("fill", d.active);
 
         // Highlight connected nodes
@@ -399,16 +397,11 @@ class GraphVisualizer {
           )
           .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
-          .style(
-            "transition",
-            `fill ${this.config.node.transitionDuration}ms`,
-          )
+          .style("transition", `fill ${this.config.node.transitionDuration}ms`)
           .style("fill", (n) => n.active);
 
         // Show text for hovered node
-        d3.select(event.currentTarget)
-          .select("text")
-          .attr("hidden", null);
+        d3.select(event.currentTarget).select("text").attr("hidden", null);
 
         // Dim all links
         this.zoomGroup
@@ -445,10 +438,7 @@ class GraphVisualizer {
           )
           .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
-          .style(
-            "transition",
-            `fill ${this.config.node.transitionDuration}ms`,
-          )
+          .style("transition", `fill ${this.config.node.transitionDuration}ms`)
           .style("fill", (d) => d.inactive);
 
         // Hide all text
@@ -496,7 +486,7 @@ class GraphVisualizer {
 
 function ZkGraph() {
   const [graphInstance, setGraphInstance] = useState(null);
-  const refSvg = useRef(null)
+  const refSvg = useRef(null);
 
   useEffect(() => {
     const svg = d3.select(refSvg.current);
@@ -505,13 +495,18 @@ function ZkGraph() {
       const fetchTags = await d3.json("http://localhost:3000/api/tag");
       // console.log(fetchData);
       // console.log(fetchTags);
-      const newGraph = new GraphVisualizer(svg, defaultConfig, fetchData, fetchTags);
+      const newGraph = new GraphVisualizer(
+        svg,
+        defaultConfig,
+        fetchData,
+        fetchTags,
+      );
       newGraph.initialize();
       setGraphInstance(newGraph);
     }
     fetchData();
-    return () => { };
-  }, [])
+    return () => {};
+  }, []);
 
   const handleConfigUpdate = (newConfig) => {
     if (!graphInstance) return;
@@ -528,27 +523,29 @@ function ZkGraph() {
           .distance(newConfig.force.linkDistance),
       );
 
-    // graphInstance.zoomGroup
-    //   .selectAll(".nodes circle")
-    //   .attr(
-    //     "r",
-    //     (d) =>
-    //       newConfig.node.baseRadius +
-    //       d.connections * newConfig.node.radiusMultiplier,
-    //   );
+    graphInstance.zoomGroup
+      .selectAll(".nodes circle")
+      .attr(
+        "r",
+        (d) =>
+          newConfig.node.baseRadius +
+          d.connections * newConfig.node.radiusMultiplier,
+      );
 
     // Restart simulation
     graphInstance.simulation.alpha(0.3).restart();
   };
 
-
   const handleFilterUpdate = (newFilter) => {
     graphInstance.filterNodes(newFilter);
-  }
+  };
 
   return (
     <>
-      <ConfigControl onConfigUpdate={handleConfigUpdate} onFilterUpdate={handleFilterUpdate} />
+      <ConfigControl
+        onConfigUpdate={handleConfigUpdate}
+        onFilterUpdate={handleFilterUpdate}
+      />
       <div className="graph-container">
         <svg
           ref={refSvg}

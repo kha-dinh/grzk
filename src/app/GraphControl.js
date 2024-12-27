@@ -1,19 +1,27 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from "react";
 
-
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import {
   GripVertical,
   Minimize2,
   Maximize2,
   ChevronDown,
   ChevronRight,
+  ChevronsUpDown,
 } from "lucide-react";
 import { defaultConfig } from "./graphConfig";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
 const getStoredPosition = () => {
-
   let stored = undefined;
   if (global?.window !== undefined) {
     stored = localStorage.getItem("configSliderPosition");
@@ -21,10 +29,8 @@ const getStoredPosition = () => {
   return stored ? JSON.parse(stored) : { x: 20, y: 20 };
 };
 
-
-
 const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
-  const [config, setConfig] = useState(defaultConfig)
+  const [config, setConfig] = useState(defaultConfig);
   const [position, setPosition] = useState(getStoredPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -108,7 +114,7 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
     }));
   };
 
-  const SectionHeader = ({ title, section }) => (
+  const SectionHeader = ({ children, title, section }) => (
     <button
       onClick={() => toggleSection(section)}
       className="flex items-center gap-1 w-full hover:bg-gray-50 p-1 rounded select-none"
@@ -122,6 +128,38 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
     </button>
   );
 
+  const GraphControlCollapsible = ({ children, section, title }) => (
+    <Collapsible
+      open={expandedSections[section]}
+      onOpenChange={() => {
+        toggleSection(section);
+      }}
+      className="w-full space-y-2"
+    >
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center justify-between space-x-4 px-4">
+          <h4 className="text-sm font-semibold">{title}</h4>
+          <Button variant="ghost" size="sm" className="w-9 p-0">
+            <ChevronsUpDown className="h-4 w-4" />
+            <span className="sr-only">Toggle</span>
+          </Button>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  );
+
+  const CollapsibleHeader = ({ children }) => (
+    <div className="flex items-center justify-between space-x-4 px-4">
+      <h4 className="text-sm font-semibold">{children}</h4>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="w-9 p-0">
+          <ChevronsUpDown className="h-4 w-4" />
+          <span className="sr-only">Toggle</span>
+        </Button>
+      </CollapsibleTrigger>
+    </div>
+  );
   return (
     <div
       className="fixed"
@@ -150,7 +188,7 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
         >
           <div className="flex items-center gap-1">
             <GripVertical className="w-4 h-4" />
-            <CardTitle className="text-sm">Graph Configuration</CardTitle>
+            <CardTitle>Graph Configuration</CardTitle>
           </div>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
@@ -168,153 +206,116 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
           <CardContent className="p-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <SectionHeader title="Filter" section="filter" />
-                {expandedSections.filter && (
-                  <div className="grid gap-2 pl-6">
-                    <div>
-                      <label className="block text-xs mb-1">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        // value={config.filter.centerForce}
-                        onChange={(e) =>
-                          handleFilterChange(
-                            e.target.value,
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        // value={config.filter.centerForce}
-                        // onChange={(e) =>
-                        //   handleSliderChange(
-                        //     "force",
-                        //     "centerForce",
-                        //     e.target.value,
-                        //   )
-                        // }
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                )}
-              </div>
-              <div className="space-y-2">
-                <SectionHeader title="Force" section="force" />
-                {expandedSections.force && (
-                  <div className="grid gap-2 pl-6">
-                    <div>
-                      <label className="block text-xs mb-1">
+                <Collapsible
+                  open={expandedSections.force}
+                  onOpenChange={() => {
+                    toggleSection("force");
+                  }}
+                  className="w-full space-y-2"
+                >
+                  <CollapsibleHeader>Force</CollapsibleHeader>
+                  <CollapsibleContent className="space-y-2">
+                    <div className="grid gap-2 pl-6">
+                      <Label className="block text-xs mb-2">
                         Center Force: {config.force.centerForce}
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={config.force.centerForce}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "force",
-                            "centerForce",
-                            e.target.value,
-                          )
+                      </Label>
+                      <Slider
+                        max={1}
+                        step={0.1}
+                        defaultValue={[config.force.centerForce]}
+                        onValueChange={(v) =>
+                          handleSliderChange("force", "centerForce", v[0])
                         }
                         className="w-full"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">
+                      <Label className="block text-xs mb-2">
                         Repel Force: {config.force.repelForce}
-                      </label>
-                      <input
-                        type="range"
-                        min="-1000"
-                        max="0"
-                        step="50"
-                        value={config.force.repelForce}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "force",
-                            "repelForce",
-                            e.target.value,
-                          )
+                      </Label>
+                      <Slider
+                        min={-1000}
+                        max={0}
+                        step={50}
+                        defaultValue={[config.force.repelForce]}
+                        onValueChange={(v) =>
+                          handleSliderChange("force", "repelForce", v[0])
                         }
                         className="w-full"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">
+                      <Label className="block text-xs mb-2">
                         Link Force: {config.force.linkForce}
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={config.force.linkForce}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "force",
-                            "linkForce",
-                            e.target.value,
-                          )
+                      </Label>
+                      <Slider
+                        max={1}
+                        step={0.1}
+                        defaultValue={[config.force.linkForce]}
+                        onValueChange={(v) =>
+                          handleSliderChange("force", "linkForce", v[0])
                         }
                         className="w-full"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">
+                      <Label className="block text-xs mb-2">
                         Link Distance: {config.force.linkDistance}
-                      </label>
-                      <input
-                        type="range"
-                        min="10"
-                        max="200"
-                        step="10"
-                        value={config.force.linkDistance}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "force",
-                            "linkDistance",
-                            e.target.value,
-                          )
+                      </Label>
+                      <Slider
+                        min={10}
+                        max={200}
+                        step={5}
+                        defaultValue={[config.force.linkDistance]}
+                        onValueChange={(e) =>
+                          handleSliderChange("force", "linkDistance", e[0])
                         }
                         className="w-full"
                       />
                     </div>
-                  </div>
-                )}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Collapsible
+                  open={expandedSections.filter}
+                  onOpenChange={() => {
+                    toggleSection("filter");
+                  }}
+                  className="w-full space-y-2"
+                >
+                  <CollapsibleHeader>Filter</CollapsibleHeader>
+                  <CollapsibleContent>
+                    <div className="grid gap-2 pl-6">
+                      <Input
+                        type="text"
+                        placeholder="Title"
+                        // value={config.filter.centerForce}
+                        onChange={(e) => handleFilterChange(e.target.value)}
+                        className="w-full h-8"
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
 
+              <Collapsible
+                open={expandedSections.nodes}
+                onOpenChange={() => {
+                  toggleSection("nodes");
+                }}
+                className="w-full space-y-2"
+              >
+                <CollapsibleHeader>Nodes</CollapsibleHeader>
+              </Collapsible>
               <div className="space-y-2">
                 <SectionHeader title="Nodes" section="nodes" />
                 {expandedSections.nodes && (
                   <div className="grid gap-2 pl-6">
                     <div>
-                      <label className="block text-xs mb-1">
+                      <Label className="block text-xs mb-1">
                         Base Radius: {config.node.baseRadius}
-                      </label>
-                      <input
-                        type="range"
-                        min="2"
-                        max="20"
-                        step="1"
-                        value={config.node.baseRadius}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "node",
-                            "baseRadius",
-                            e.target.value,
-                          )
+                      </Label>
+                      <Slider
+                        min={2}
+                        max={20}
+                        step={1}
+                        defaultValue={[config.node.baseRadius]}
+                        onValueChange={(e) =>
+                          handleSliderChange("node", "baseRadius", e[0])
                         }
                         className="w-full"
                       />
