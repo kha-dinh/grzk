@@ -38,8 +38,8 @@ function ZkGraph() {
   const handleConfigUpdate = (newConfig) => {
     graphInstance.config = newConfig;
     graphInstance.setupSimulation();
-    graphInstance.createVisualization();
-    graphInstance.setupZoom();
+    // graphInstance.createVisualization();
+    // graphInstance.setupZoom();
   };
 
   const handleFilterUpdate = (newFilter) => {

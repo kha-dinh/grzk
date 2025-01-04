@@ -49,9 +49,9 @@ export const defaultConfig: Config = {
     arrowSize: 3, // Size of the arrow marker
   },
   force: {
-    centerForce: 0.5, // How strongly nodes are pulled to the center (0-1)
+    centerForce: 0.1, // How strongly nodes are pulled to the center (0-1)
     repelForce: -500, // How strongly nodes push away from each other
-    linkForce: 0.1, // How strongly connected nodes pull together (0-1)
+    linkForce: 0.2, // How strongly connected nodes pull together (0-1)
     linkDistance: 100, // Base distance between connected nodes
   },
   zoom: {

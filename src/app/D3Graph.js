@@ -163,33 +163,44 @@ export class GraphVisualizer {
     return { nodes, links, tagNodes, tagLinks };
   }
 
+  refreshSimulationConfig() {
+    this.simulation
+      .alphaDecay(0.02) // slower cooling
+      .velocityDecay(0.2) // more momentum
+      .alpha(1).restart();
+
+    this.simulation.force("center")
+      .strength(this.config.force.centerForce)
+      .initialize([...this.filtered.nodes, ...this.filtered.tagNodes]);
+    // this.simulation.force("x").initialize(this.config.force.centerForce);
+    // this.simulation.force("y").initialize(this.config.force.centerForce);
+
+  }
   setupSimulation() {
-    if (this.simulation) {
-      this.simulation.stop()
+    const allNodes = [...this.filtered.nodes, ...this.filtered.tagNodes]
+    if (!this.simulation) {
+      this.simulation = d3
+        .forceSimulation(allNodes);
     }
 
-    this.simulation = d3
-      .forceSimulation([...this.filtered.nodes, ...this.filtered.tagNodes])
-      .force(
-        "center",
-        d3.forceCenter().strength(this.config.force.centerForce)
-      )
+    this.simulation
+      .alphaDecay(0.01) // slower cooling
+      .velocityDecay(0.5) // more momentum
+      .alpha(5).restart();
+
+    this.simulation
+      // (re)initialize
       .force(
         "x",
-        d3.forceX())
+        d3.forceX().strength(this.config.force.centerForce))
       .force(
         "y",
-        d3.forceY())
+        d3.forceY().strength(this.config.force.centerForce))
       // Repel force - pushes nodes away from each other
       .force(
         "repel",
-        d3.forceManyBody().strength((d) => { return this.config.force.repelForce; }),
-      )
-
-    this.simulation
-      .alphaDecay(0.02) // Slower cooling
-      .velocityDecay(0.2) // More momentum
-      .alpha(0.2).restart();
+        d3.forceManyBody().strength(this.config.force.repelForce),
+      );
   }
 
 
