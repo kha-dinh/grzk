@@ -11,7 +11,8 @@ class GraphVisualizer {
   constructor(svg, config, rawData, tags) {
     this.svg = svg;
     this.config = config;
-    this.rawData = rawData;
+    this.data = this.processGraphData(rawData, tags);
+    this.filtered = null;
     this.tags = tags;
     this.simulation = null;
     this.zoomGroup = null;
@@ -19,24 +20,20 @@ class GraphVisualizer {
     this.links = null;
   }
 
-  async initialize(filter) {
+  async initialize() {
     try {
-      const processedData = this.processGraphData(this.rawData, this.tags);
-      this.setupSimulation(processedData);
-      this.createVisualization(processedData);
+      this.applyFilter()
+      this.setupSimulation();
+      this.createVisualization();
       this.setupZoom();
     } catch (error) {
       console.error("Failed to initialize graph:", error);
     }
   }
 
-  filterNodes(filter) {
-    // console.log(filter)
+  applyFilter(filter = null) {
     if (!filter) {
-      // Not much to do
-      this.nodes.attr("hidden", null);
-      this.links.attr("hidden", null);
-      this.setupSimulationTick(this.nodes, this.links);
+      this.filtered = this.data
       return;
     }
     const tagNodes = this.nodes
@@ -44,53 +41,35 @@ class GraphVisualizer {
       .nodes()
       .map((item) => item.__data__);
     const fuzzySearch = createFuzzySearch(
-      this.nodes.filter((d) => d.type != "tag").nodes(),
+      this.data.nodes.filter((d) => d.type != "tag"),
       {
-        // search by `name` property
-        // key: "title",
-        // search by `description.text` property
-        getText: (item) => [item.__data__.title],
-        // search by multiple properties:
-        // getText: (item) => [item.name, item.description.text]
+        getText: (item) => [item.title],
       },
     );
 
-    let selectedNodes = fuzzySearch(filter).map((item) => item.item.__data__);
-    // console.log(tagNodes)
+    let selectedNodes = fuzzySearch(filter).map((n) => n.item);
     selectedNodes = selectedNodes.concat(tagNodes);
 
-    // Links that are hidden
-    let filteredLinks = new Set();
+    let connectedLinks = new Set();
+    selectedNodes.forEach((n) => {
+      let links = this.getConnectedLinks(n);
+      if (links) {
+        links = [...links].filter(
+          (l) =>
+            selectedNodes.some((n) => l.source.path === n.path) &&
+            selectedNodes.some((n) => l.target.path === n.path)
 
-    this.nodes
-      .filter((d) => !selectedNodes.includes(d))
-      .attr("hidden", true)
-      .each((d) => {
-        // Hide connected links
-        this.links
-          .filter(
-            (link) =>
-              link.source.path === d.path || link.target.path === d.path,
-          )
-          .attr("hidden", true)
-          .each((link) => filteredLinks.add(link));
-      });
-
-    const newNodes = this.nodes
-      .filter((d) => selectedNodes.includes(d))
-      .attr("hidden", null);
-    const newLinks = this.links
-      .filter((link) => !filteredLinks.has(link))
-      .attr("hidden", null);
-    const selectedLinks = newLinks.nodes().map((item) => item.__data__);
-    // this.nodes.remove();
-    // this.links.remove();
-
-    // this.simulation.stop()
-    // this.setupSimulation({ nodes: selectedNodes, links: selectedLinks });
-    // this.setupSimulationTick(newNodes, newLinks);
-    // console.log(filter)
-    // console.log(selectedNodes);
+        );
+        if (links.length > 0) {
+          connectedLinks.add(...links);
+        }
+      }
+    });
+    connectedLinks = [...connectedLinks]
+    this.filtered = {
+      nodes: selectedNodes,
+      links: connectedLinks,
+    }
   }
   calculateConnectionCounts(nodes, links) {
     const counts = Object.fromEntries(nodes.map((node) => [node.path, 0]));
@@ -165,14 +144,18 @@ class GraphVisualizer {
     return { nodes, links };
   }
 
-  setupSimulation(data) {
+  setupSimulation() {
     // Calculate the maximum number of connections for normalization
     const maxConnections = Math.max(
-      ...data.nodes.map((node) => node.connections),
+      ...this.filtered.nodes.map((node) => node.connections),
     );
 
+    if (this.simulation) {
+      this.simulation.stop()
+    }
+
     this.simulation = d3
-      .forceSimulation(data.nodes)
+      .forceSimulation(this.filtered.nodes)
       // Center force - pulls nodes toward the center, stronger for well-connected nodes
       .force(
         "x",
@@ -201,7 +184,7 @@ class GraphVisualizer {
       .force(
         "link",
         d3
-          .forceLink(data.links)
+          .forceLink(this.filtered.links)
           .id((d) => d.path)
           .strength(this.config.force.linkForce)
           .distance(this.config.force.linkDistance),
@@ -213,16 +196,22 @@ class GraphVisualizer {
     this.simulation
       .alphaDecay(0.02) // Slower cooling
       .velocityDecay(0.2) // More momentum
-      .alpha(1)
+      .alpha(0.2)
       .restart();
   }
 
   createVisualization(data) {
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
 
+    if (this.links) {
+      this.links.remove();
+    }
+    if (this.nodes) {
+      this.nodes.remove();
+    }
     // Store references to nodes and links
-    this.links = this.createLinks(data.links);
-    this.nodes = this.createNodeGroups(data.nodes);
+    this.links = this.createLinks(this.filtered.links);
+    this.nodes = this.createNodeGroups(this.filtered.nodes);
 
     this.setupSimulationTick(this.nodes, this.links);
   }
@@ -318,9 +307,8 @@ class GraphVisualizer {
 
   getConnectedNodes(sourceNode) {
     const connected = new Set();
-    const links = this.simulation.force("link").links();
 
-    links.forEach((link) => {
+    this.data.links.forEach((link) => {
       if (link.source.path === sourceNode.path) {
         connected.add(link.target.path);
       } else if (link.target.path === sourceNode.path) {
@@ -333,9 +321,8 @@ class GraphVisualizer {
 
   getConnectedLinks(sourceNode) {
     const connectedLinks = new Set();
-    const links = this.simulation.force("link").links();
 
-    links.forEach((link) => {
+    this.data.links.forEach((link) => {
       if (
         link.source.path === sourceNode.path ||
         link.target.path === sourceNode.path
@@ -343,6 +330,9 @@ class GraphVisualizer {
         connectedLinks.add(link);
       }
     });
+    if (connectedLinks.length == 0) {
+      return null
+    }
 
     return connectedLinks;
   }
@@ -505,7 +495,7 @@ function ZkGraph() {
       setGraphInstance(newGraph);
     }
     fetchData();
-    return () => {};
+    return () => { };
   }, []);
 
   const handleConfigUpdate = (newConfig) => {
@@ -537,7 +527,10 @@ function ZkGraph() {
   };
 
   const handleFilterUpdate = (newFilter) => {
-    graphInstance.filterNodes(newFilter);
+    graphInstance.applyFilter(newFilter);
+    graphInstance.setupSimulation();
+    graphInstance.createVisualization();
+    graphInstance.setupZoom();
   };
 
   return (
