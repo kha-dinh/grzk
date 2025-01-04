@@ -22,10 +22,16 @@ export const defaultConfig: Config = {
   node: {
     baseRadius: 12,
     radiusMultiplier: 0.5,
-    fill: "#1f77b4",
-    tagFill: "#cc77cc",
-    tagHighlightFill: "#ff77ff",
-    highlightFill: "#ff6b6b", // Highlight color for nodes
+    color: {
+      note: {
+        fill: "#1f77b4",
+        highlightFill: "#ff6b6b", // Highlight color for nodes
+      },
+      tag: {
+        fill: "#cc77cc",
+        highlightFill: "#ff77ff",
+      }
+    },
     fontSize: 25,
     textColor: "#333333", // Added text color configuration
     textYOffset: 30, // Added offset for text below node
@@ -43,8 +49,8 @@ export const defaultConfig: Config = {
     arrowSize: 3, // Size of the arrow marker
   },
   force: {
-    centerForce: 0.2, // How strongly nodes are pulled to the center (0-1)
-    repelForce: -1000, // How strongly nodes push away from each other
+    centerForce: 0.5, // How strongly nodes are pulled to the center (0-1)
+    repelForce: -500, // How strongly nodes push away from each other
     linkForce: 0.1, // How strongly connected nodes pull together (0-1)
     linkDistance: 100, // Base distance between connected nodes
   },

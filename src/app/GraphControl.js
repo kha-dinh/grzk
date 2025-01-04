@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
+import * as d3 from "d3";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -12,6 +13,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import { defaultConfig } from "./graphConfig";
+import MultipleSelector, { MultiSelect } from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,7 +31,11 @@ const getStoredPosition = () => {
   return stored ? JSON.parse(stored) : { x: 20, y: 20 };
 };
 
-const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
+
+import { Cat, Dog, Fish, Rabbit, Turtle } from "lucide-react";
+const ConfigControl = ({ onConfigUpdate, onFilterUpdate, tags, onTagSelect }) => {
+
+  const [selectedFrameworks, setSelectedFrameworks] = useState(["react", "angular"]);
   const [config, setConfig] = useState(defaultConfig);
   const [position, setPosition] = useState(getStoredPosition);
   const [isDragging, setIsDragging] = useState(false);
@@ -41,6 +47,10 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
     zoom: true,
     filter: true,
   });
+
+  tags = tags.map((d) => { return { ...d, value: d.name, label: d.name }; })
+    .sort((a, b) => b.noteCount - a.noteCount);
+
 
   // Save position to localStorage when it changes
   useEffect(() => {
@@ -90,6 +100,18 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging]);
+
+  // useEffect(() => {
+  //   async function fetchData() {
+  //     const fetchTags = await d3.json("http://localhost:3000/api/tag");
+  //     const tags = fetchTags
+  //       .map((d) => { return { ...d, value: d.name, label: d.name }; })
+  //       .sort((a, b) => b.noteCount - a.noteCount);
+  //     setTags(tags);
+  //   }
+  //   fetchData();
+  //   return () => { };
+  // }, [])
 
   const handleSliderChange = (category, parameter, value) => {
     const newConfig = {
@@ -287,6 +309,13 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
                         onChange={(e) => handleFilterChange(e.target.value)}
                         className="w-full h-8"
                       />
+
+                      <MultipleSelector
+                        options={tags}
+                        onChange={onTagSelect}
+                        defaultValue={[]}
+                        placeholder="Select tag(s)"
+                      ></MultipleSelector>
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
@@ -373,7 +402,7 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate }) => {
           </CardContent>
         )}
       </Card>
-    </div>
+    </div >
   );
 };
 
