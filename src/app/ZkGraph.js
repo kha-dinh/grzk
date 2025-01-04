@@ -36,10 +36,9 @@ class GraphVisualizer {
       this.filtered = this.data
       return;
     }
-    const tagNodes = this.nodes
-      .filter((d) => d.type == "tag")
-      .nodes()
-      .map((item) => item.__data__);
+    const tagNodes = this.data.nodes
+      .filter((d) => d.type == "tag");
+
     const fuzzySearch = createFuzzySearch(
       this.data.nodes.filter((d) => d.type != "tag"),
       {
@@ -47,8 +46,16 @@ class GraphVisualizer {
       },
     );
 
+
     let selectedNodes = fuzzySearch(filter).map((n) => n.item);
-    selectedNodes = selectedNodes.concat(tagNodes);
+    const connectedTags = tagNodes.filter((d) => {
+      let connected = this.getConnectedNodes(d);
+      return selectedNodes.some((n) => {
+        return connected.has(n.path);
+      });
+    });
+
+    selectedNodes = selectedNodes.concat(connectedTags);
 
     let connectedLinks = new Set();
     selectedNodes.forEach((n) => {
@@ -101,13 +108,18 @@ class GraphVisualizer {
       links,
     );
 
-    let nodes = rawData.notes.map((note) => ({
-      ...note,
-      type: "note",
-      connections: connectionCounts[note.path] || 0,
-      active: this.config.node.highlightFill,
-      inactive: this.config.node.fill,
-    }));
+    let nodes = rawData.notes.map((note) => {
+      if (note.title.length > 60) {
+        note.title = note.title.slice(0, 60) + "...";
+      }
+      return {
+        ...note,
+        type: "note",
+        connections: connectionCounts[note.path] || 0,
+        active: this.config.node.highlightFill,
+        inactive: this.config.node.fill,
+      };
+    });
 
     // }
 
@@ -145,39 +157,29 @@ class GraphVisualizer {
   }
 
   setupSimulation() {
-    // Calculate the maximum number of connections for normalization
-    const maxConnections = Math.max(
-      ...this.filtered.nodes.map((node) => node.connections),
-    );
-
     if (this.simulation) {
       this.simulation.stop()
     }
 
     this.simulation = d3
       .forceSimulation(this.filtered.nodes)
-      // Center force - pulls nodes toward the center, stronger for well-connected nodes
       .force(
         "x",
         d3.forceX().strength((d) => {
-          // Normalize connections to get a value between 0 and 1
-          const connectionStrength = d.connections / maxConnections;
-          // More connections = stronger pull to center
-          return this.config.force.centerForce * (1 + connectionStrength);
+          return this.config.force.centerForce;
         }),
       )
       .force(
         "y",
         d3.forceY().strength((d) => {
-          const connectionStrength = d.connections / maxConnections;
-          return this.config.force.centerForce * (1 + connectionStrength);
+          return this.config.force.centerForce;
         }),
       )
 
       // Repel force - pushes nodes away from each other
       .force(
         "charge",
-        d3.forceManyBody().strength(this.config.force.repelForce),
+        d3.forceManyBody().strength((d) => { return this.config.force.repelForce; }),
       )
 
       // Link force - maintains connections between nodes
@@ -293,7 +295,7 @@ class GraphVisualizer {
       .attr("text-anchor", "middle") // Center the text below the node
       .style("fill", this.config.node.textColor) // Set text color
       .style("font-size", this.config.node.fontSize)
-      .attr("hidden", true)
+      .attr("hidden", null)
       .text((d) => d.title);
 
     // Add tooltips
@@ -356,66 +358,67 @@ class GraphVisualizer {
         d.fy = null;
       });
 
+    // if hovering over the circle
     container
-      .call(drag)
-      .on("mouseover", (event, d) => {
-        // Only trigger if hovering over the circle
-        if (event.target.tagName !== "circle") return;
+      .call(drag);
 
-        const connectedNodes = this.getConnectedNodes(d);
-        const connectedLinks = this.getConnectedLinks(d);
+    container.on("mouseover", (event, d) => {
+      if (event.target.tagName !== "circle") return;
 
-        // Dim all nodes initially
-        this.zoomGroup
-          .selectAll(".nodes g")
-          .style(
-            "transition",
-            `opacity ${this.config.node.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.node.dimOpacity)
-          .select("circle")
-          .style("transition", `fill ${this.config.node.transitionDuration}ms`);
-        // .style("fill", d.active);
+      const connectedNodes = this.getConnectedNodes(d);
+      const connectedLinks = this.getConnectedLinks(d);
 
-        // Highlight connected nodes
-        this.zoomGroup
-          .selectAll(".nodes g")
-          .filter((n) => n.path === d.path || connectedNodes.has(n.path))
-          .style(
-            "transition",
-            `opacity ${this.config.node.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.node.highlightOpacity)
-          .select("circle")
-          .style("transition", `fill ${this.config.node.transitionDuration}ms`)
-          .style("fill", (n) => n.active);
+      // Dim all nodes initially
+      this.zoomGroup
+        .selectAll(".nodes g")
+        .style(
+          "transition",
+          `opacity ${this.config.node.transitionDuration}ms`,
+        )
+        .style("opacity", this.config.node.dimOpacity)
+        .select("circle")
+        .style("transition", `fill ${this.config.node.transitionDuration}ms`);
+      // .style("fill", d.active);
 
-        // Show text for hovered node
-        d3.select(event.currentTarget).select("text").attr("hidden", null);
+      // Highlight connected nodes
+      this.zoomGroup
+        .selectAll(".nodes g")
+        .filter((n) => n.path === d.path || connectedNodes.has(n.path))
+        .style(
+          "transition",
+          `opacity ${this.config.node.transitionDuration}ms`,
+        )
+        .style("opacity", this.config.node.highlightOpacity)
+        .select("circle")
+        .style("transition", `fill ${this.config.node.transitionDuration}ms`)
+        .style("fill", (n) => n.active);
 
-        // Dim all links
-        this.zoomGroup
-          .selectAll(".links line")
-          .style(
-            "transition",
-            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.link.dimOpacity)
-          .style("stroke", this.config.link.stroke)
-          .style("stroke-width", 1);
+      // // Show text for hovered node
+      // d3.select(event.currentTarget).select("text").attr("hidden", null);
 
-        // Highlight connected links
-        this.zoomGroup
-          .selectAll(".links line")
-          .filter((l) => connectedLinks.has(l))
-          .style(
-            "transition",
-            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.link.highlightOpacity)
-          .style("stroke", this.config.link.highlightStroke)
-          .style("stroke-width", 2);
-      })
+      // Dim all links
+      this.zoomGroup
+        .selectAll(".links line")
+        .style(
+          "transition",
+          `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
+        )
+        .style("opacity", this.config.link.dimOpacity)
+        .style("stroke", this.config.link.stroke)
+        .style("stroke-width", 1);
+
+      // Highlight connected links
+      this.zoomGroup
+        .selectAll(".links line")
+        .filter((l) => connectedLinks.has(l))
+        .style(
+          "transition",
+          `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
+        )
+        .style("opacity", this.config.link.highlightOpacity)
+        .style("stroke", this.config.link.highlightStroke)
+        .style("stroke-width", 2);
+    })
       .on("mouseout", (event) => {
         // Only trigger if leaving the circle
         if (event.target.tagName !== "circle") return;
@@ -431,14 +434,14 @@ class GraphVisualizer {
           .style("transition", `fill ${this.config.node.transitionDuration}ms`)
           .style("fill", (d) => d.inactive);
 
-        // Hide all text
-        this.zoomGroup
-          .selectAll("text")
-          // .style(
-          //   "transition",
-          //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
-          // )
-          .attr("hidden", true);
+        // // Hide all text
+        // this.zoomGroup
+        //   .selectAll("text")
+        //   // .style(
+        //   //   "transition",
+        //   //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
+        //   // )
+        //   .attr("hidden", true);
 
         // Reset all links
         this.zoomGroup
@@ -501,29 +504,35 @@ function ZkGraph() {
   const handleConfigUpdate = (newConfig) => {
     if (!graphInstance) return;
 
-    graphInstance.simulation
-      .force("x", d3.forceX().strength(newConfig.force.centerForce))
-      .force("y", d3.forceY().strength(newConfig.force.centerForce))
-      .force("charge", d3.forceManyBody().strength(newConfig.force.repelForce))
-      .force(
-        "link",
-        graphInstance.simulation
-          .force("link")
-          .strength(newConfig.force.linkForce)
-          .distance(newConfig.force.linkDistance),
-      );
+    graphInstance.config = newConfig;
 
-    graphInstance.zoomGroup
-      .selectAll(".nodes circle")
-      .attr(
-        "r",
-        (d) =>
-          newConfig.node.baseRadius +
-          d.connections * newConfig.node.radiusMultiplier,
-      );
+    graphInstance.setupSimulation();
+    graphInstance.createVisualization();
+    graphInstance.setupZoom();
+    // graphInstance.setupSimulation()
+    // graphInstance.simulation
+    //   .force("x", d3.forceX().strength(newConfig.force.centerForce))
+    //   .force("y", d3.forceY().strength(newConfig.force.centerForce))
+    //   .force("charge", d3.forceManyBody().strength(newConfig.force.repelForce))
+    //   .force(
+    //     "link",
+    //     graphInstance.simulation
+    //       .force("link")
+    //       .strength(newConfig.force.linkForce)
+    //       .distance(newConfig.force.linkDistance),
+    //   );
+    //
+    // graphInstance.zoomGroup
+    //   .selectAll(".nodes circle")
+    //   .attr(
+    //     "r",
+    //     (d) =>
+    //       newConfig.node.baseRadius +
+    //       d.connections * newConfig.node.radiusMultiplier,
+    //   );
 
     // Restart simulation
-    graphInstance.simulation.alpha(0.3).restart();
+    // graphInstance.simulation.alpha(0.3).restart();
   };
 
   const handleFilterUpdate = (newFilter) => {
