@@ -20,7 +20,7 @@ export type Config = {
 
 export const defaultConfig: Config = {
   node: {
-    baseRadius: 7,
+    baseRadius: 12,
     radiusMultiplier: 0.5,
     fill: "#1f77b4",
     tagFill: "#cc77cc",
@@ -44,14 +44,14 @@ export const defaultConfig: Config = {
   },
   force: {
     centerForce: 0.2, // How strongly nodes are pulled to the center (0-1)
-    repelForce: -500, // How strongly nodes push away from each other
-    linkForce: 0.3, // How strongly connected nodes pull together (0-1)
-    linkDistance: 50, // Base distance between connected nodes
+    repelForce: -1000, // How strongly nodes push away from each other
+    linkForce: 0.1, // How strongly connected nodes pull together (0-1)
+    linkDistance: 100, // Base distance between connected nodes
   },
   zoom: {
     min: 0.1,
     max: 10,
-    defaultScale: 0.4,
+    defaultScale: 0.2,
   },
   opener: {
     program: "neovide"
