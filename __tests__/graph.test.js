@@ -61,7 +61,7 @@ test("Test graph import", () => {
   const graph = new ZkGraph(TEST_NOTES)
   // console.log(graph.nodes)
   console.log(graph.tags)
-  // console.log(graph.edges)
+  console.log(graph.edges)
 
   expect(graph.getLinks().length).toBe(3);
   expect(graph.getNotes().length).toBe(5);

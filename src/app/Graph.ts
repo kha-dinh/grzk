@@ -1,5 +1,9 @@
 
 
+// How we identify unique nodes and edges
+type NodeIdx = [path: string, type: ZkNodeType];
+type EdgeIdx = [srcPath: string, dstPath: string, type: ZkEdgeType];
+
 // {
 // "title":"mzvuhqa8",
 // "href":"mzvuhqa8",
@@ -27,17 +31,27 @@ class ZkEdge {
   // sippetStart: number = 0
   // sippetend: number = 0
   // sourceId: number = 0
-  sourcePath: string = ""
+  source: string
   // targetId: number = 0
-  targetPath: string = ""
+  target: string
 
-  type: ZkEdgeType = ZkEdgeType.LINK
+  type: ZkEdgeType
 
   // Positions
   x1: number = 0
   x2: number = 0
   y1: number = 0
   y2: number = 0
+
+
+  constructor(source: string, target: string, type: ZkEdgeType = ZkEdgeType.LINK) {
+    this.source = source;
+    this.target = target;
+    this.type = type;
+  }
+  idx(): EdgeIdx {
+    return [this.source, this.target, this.type]
+  }
 }
 
 // {
@@ -56,28 +70,19 @@ class ZkEdge {
 // }
 
 enum ZkEdgeType {
-  LINK, TAG
+  LINK = "link",
+  TAG = "tag"
 }
 
 enum ZkNodeType {
-  NOTE, TAG
+  NOTE = "note",
+  TAG = "tag"
 }
 
 class ZkNode {
   // Data from ZK
-  filename?: string = ""
-  // filenameStem: string = ""
-  path: string = ""
-  absPath?: string
-  title: string = ""
-  link?: string
-  body?: string
-  tags?: string[]
-  metadata?: Object
-  created?: string
-  modified?: string
-  checksum?: string
-
+  data?: any
+  path: string
   // Custom 
   type: ZkNodeType = ZkNodeType.NOTE
 
@@ -88,23 +93,28 @@ class ZkNode {
   x: number = 0
   y: number = 0
 
+  constructor(path: string, type: ZkNodeType = ZkNodeType.NOTE, data: any) {
+    this.path = path;
+    this.type = type
+    this.data = data
+  }
   id() {
     return this.path;
+  }
+
+  idx(): NodeIdx {
+    return [this.path, this.type];
   }
 
 };
 
 
-// How we identify unique nodes and edges
-type NodeIdx = [path: string, type: ZkNodeType];
-type EdgeIdx = [srcPath: string, dstPath: string, type: ZkEdgeType];
-
 // {"id":93,"kind":"tag","name":"DB","noteCount":1},
 // {"id":92,"kind":"tag","name":"DBs","noteCount":1}
 
 type RawData = {
-  links: ZkEdge[]
-  notes: ZkNode[]
+  links: { sourcePath: string, targetPath: string }[]
+  notes: { path: string }[]
 }
 class TagData {
   nodes: String[] = []
@@ -118,22 +128,14 @@ export default class ZkGraph {
   constructor(rawData: RawData) {
 
     rawData.notes.forEach((n) => {
-      let newNode = new ZkNode();
-      Object.assign(newNode, {
-        ...n,
-        type: ZkNodeType.NOTE
-      });
+      let newNode = new ZkNode(n.path, ZkNodeType.NOTE, n);
       this.nodes.set([newNode.id(), ZkNodeType.NOTE], newNode)
     });
 
     rawData.links.forEach((l) => {
-      let newEdge = new ZkEdge();
-      Object.assign(newEdge, {
-        ...l,
-        type: ZkEdgeType.LINK
-      });
+      let newEdge = new ZkEdge(l.sourcePath, l.targetPath, ZkEdgeType.LINK);
       this.edges.set(
-        [newEdge.sourcePath, newEdge.targetPath, ZkEdgeType.LINK],
+        newEdge.idx(),
         newEdge)
     });
 
@@ -151,11 +153,11 @@ export default class ZkGraph {
     this.edges.forEach((edge) => {
       // let count: { [path: string]: number }
       this.nodes.forEach((node) => {
-        if (node.path === edge.sourcePath) {
+        if (node.path === edge.source) {
           node.outEdge++;
         };
 
-        if (node.path === edge.targetPath) {
+        if (node.path === edge.target) {
           node.inEdge++;
         };
       })
@@ -164,8 +166,8 @@ export default class ZkGraph {
     // Construct tags based on existing data
     this.nodes.forEach((node) => {
 
-      if (node.tags) {
-        node.tags.forEach((t) => {
+      if (node.data.tags) {
+        node.data.tags.forEach((t: string) => {
           let tagData = this.tags.get(t)
           if (tagData)
             tagData.nodes.push(node.id())
@@ -180,12 +182,7 @@ export default class ZkGraph {
     });
 
     this.tags.forEach((tagData, tag) => {
-      let tagNode = new ZkNode();
-      Object.assign(tagNode, {
-        title: tag,
-        path: tag,
-        type: ZkNodeType.TAG
-      })
+      let tagNode = new ZkNode(tag, ZkNodeType.TAG, { title: tag });
       // Add tag nodes to graph
       this.nodes.set([tagNode.id(), ZkNodeType.TAG], tagNode);
 
@@ -194,13 +191,8 @@ export default class ZkGraph {
         const taggedNode = this.nodes.values().find((node) => node.id() == nodeId)
         if (!taggedNode)
           return;
-        let tagEdge = new ZkEdge();
-        Object.assign(tagEdge, {
-          sourcePath: taggedNode.id(),
-          targetPath: tagNode.id(),
-          type: ZkNodeType.TAG
-        })
-        this.edges.set([tagEdge.sourcePath, tagEdge.targetPath, ZkEdgeType.TAG], tagEdge);
+        let tagEdge = new ZkEdge(taggedNode.path, tagNode.path, ZkEdgeType.TAG);
+        this.edges.set(tagEdge.idx(), tagEdge);
       })
     });
 
@@ -216,7 +208,7 @@ export default class ZkGraph {
 
   findNotesWithTag(tag: string) {
     return this.getNotes().filter((node) => {
-      return node.tags!.includes(tag);
+      return node.data.tags!.includes(tag);
     })
   }
 
