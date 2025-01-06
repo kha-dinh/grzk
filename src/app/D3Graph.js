@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import createFuzzySearch from "@nozbe/microfuzz";
 
 export class GraphVisualizer {
   constructor(svg, config, rawData, tags) {
@@ -28,9 +29,6 @@ export class GraphVisualizer {
     }
   }
 
-  createNodes() {
-
-  }
   applyFilter() {
     if (this.filter == "") {
       this.filtered = this.data
@@ -226,7 +224,6 @@ export class GraphVisualizer {
     this.tagLinks = this.setupLinks(this.filtered.tagLinks, "tag");
     this.tagNodes = this.createNodeGroup(this.filtered.tagNodes, "tag");
   }
-
   setupZoom() {
     const width = this.svg.node().getBoundingClientRect().width;
     const height = this.svg.node().getBoundingClientRect().height;

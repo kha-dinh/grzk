@@ -5,7 +5,6 @@ import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { defaultConfig } from "./graphConfig.ts";
-import createFuzzySearch from "@nozbe/microfuzz";
 import { GraphVisualizer } from "./D3Graph"
 
 
