@@ -31,11 +31,17 @@ const getStoredPosition = () => {
   return stored ? JSON.parse(stored) : { x: 20, y: 20 };
 };
 
-
 import { Cat, Dog, Fish, Rabbit, Turtle } from "lucide-react";
-const ConfigControl = ({ onConfigUpdate, onFilterUpdate, tags, onTagSelect }) => {
-
-  const [selectedFrameworks, setSelectedFrameworks] = useState(["react", "angular"]);
+const ConfigControl = ({
+  onConfigUpdate,
+  onFilterUpdate,
+  tags,
+  onTagSelect,
+}) => {
+  const [selectedFrameworks, setSelectedFrameworks] = useState([
+    "react",
+    "angular",
+  ]);
   const [config, setConfig] = useState(defaultConfig);
   const [position, setPosition] = useState(getStoredPosition);
   const [isDragging, setIsDragging] = useState(false);
@@ -48,9 +54,11 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate, tags, onTagSelect }) =>
     filter: true,
   });
 
-  tags = tags.map((d) => { return { ...d, value: d.name, label: d.name }; })
+  tags = tags
+    .map((d) => {
+      return { ...d, value: d.name, label: d.name };
+    })
     .sort((a, b) => b.noteCount - a.noteCount);
-
 
   // Save position to localStorage when it changes
   useEffect(() => {
@@ -402,7 +410,7 @@ const ConfigControl = ({ onConfigUpdate, onFilterUpdate, tags, onTagSelect }) =>
           </CardContent>
         )}
       </Card>
-    </div >
+    </div>
   );
 };
 

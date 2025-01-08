@@ -1,27 +1,41 @@
-
-type NodeConfig = {}
-type LinkConfig = {}
-type ForceConfig = {}
-type ZoomConfig = {}
-type BackgroundConfig = {}
+type NodeConfig = {};
+type LinkConfig = {
+  stroke: string;
+  highlight: string;
+  opacity: number;
+  dimOpacity: number;
+  highlightOpacity: number;
+  arrowSize: number;
+};
+type ForceConfig = {
+  centerForce: number;
+  repelForce: number;
+  linkForce: number;
+  linkDistance: number;
+};
+type ZoomConfig = {
+  min: number;
+  max: number;
+  defaultScale: number;
+};
+type BackgroundConfig = {};
 type OpenerConfig = {
-  program: string
-}
+  program: string;
+};
 
-export type Config = {
-  node: NodeConfig,
-  link: LinkConfig
-  force: ForceConfig,
-  zoom: ZoomConfig,
-  opener: OpenerConfig,
-  background: BackgroundConfig,
-}
+export type GraphConfig = {
+  node: NodeConfig;
+  link: LinkConfig;
+  force: ForceConfig;
+  zoom: ZoomConfig;
+  opener: OpenerConfig;
+  background: BackgroundConfig;
+};
 
-
-export const defaultConfig: Config = {
+export const defaultConfig: GraphConfig = {
   node: {
     baseRadius: 12,
-    radiusMultiplier: 0.5,
+    radiusMultiplier: 0.2,
     color: {
       note: {
         fill: "#1f77b4",
@@ -30,7 +44,7 @@ export const defaultConfig: Config = {
       tag: {
         fill: "#cc77cc",
         highlightFill: "#ff77ff",
-      }
+      },
     },
     fontSize: 25,
     textColor: "#333333", // Added text color configuration
@@ -41,9 +55,8 @@ export const defaultConfig: Config = {
   },
   link: {
     stroke: "#999",
-    highlightStroke: "#ff6b6b",
+    highlight: "#ff6b6b",
     opacity: 1,
-    strength: 2,
     dimOpacity: 0.2,
     highlightOpacity: 1,
     arrowSize: 3, // Size of the arrow marker
@@ -57,12 +70,12 @@ export const defaultConfig: Config = {
   zoom: {
     min: 0.1,
     max: 10,
-    defaultScale: 0.2,
+    defaultScale: 0.4,
   },
   opener: {
-    program: "neovide"
+    program: "neovide",
   }, // Open configuration object with opener property
   background: {
-    color: "#ffffee"
-  }
+    color: "#ffffee",
+  },
 };

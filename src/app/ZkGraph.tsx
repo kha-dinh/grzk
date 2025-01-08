@@ -4,60 +4,56 @@ import { useFuzzySearchList, Highlight } from "@nozbe/microfuzz/react";
 import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
-import { defaultConfig } from "./graphConfig.ts";
-import { GraphVisualizer } from "./D3Graph"
+import { GraphConfig, defaultConfig } from "./graphConfig";
+import { GraphVisualizer } from "./D3Graph";
+import { RawData, ZkGraph } from "./Graph";
 
-
-function ZkGraph() {
-  const [graphInstance, setGraphInstance] = useState(null);
-  const [tags, setTags] = useState([]);
+function Graph() {
+  const [graph, setGraph] = useState<ZkGraph>();
+  const [graphViz, setGraphViz] = useState<GraphVisualizer>();
+  const [tags, setTags] = useState<string[]>([]);
   const refSvg = useRef(null);
 
   useEffect(() => {
     const svg = d3.select(refSvg.current);
     async function fetchData() {
-      const fetchData = await d3.json("http://localhost:3000/api/graph");
-      const fetchTags = await d3.json("http://localhost:3000/api/tag");
-      // console.log(fetchData);
-      // console.log(fetchTags);
-      const newGraph = new GraphVisualizer(
-        svg,
-        defaultConfig,
-        fetchData,
-        fetchTags,
+      const fetchData: RawData | undefined = await d3.json(
+        "http://localhost:3000/api/graph",
       );
-      setTags(fetchTags)
-      newGraph.initialize();
-      setGraphInstance(newGraph);
+
+      const graph = new ZkGraph(fetchData!);
+      const graphViz = new GraphVisualizer(svg, defaultConfig, graph);
+      graphViz.initialize();
+
+      setGraph(graph);
+      setGraphViz(graphViz);
     }
     fetchData();
-    return () => { };
+    return () => {};
   }, []);
 
-  const handleConfigUpdate = (newConfig) => {
-    graphInstance.config = newConfig;
-    graphInstance.setupSimulation();
+  const handleConfigUpdate = (newConfig: GraphConfig) => {
+    graphViz.config = newConfig;
+    graphViz.setupSimulation();
     // graphInstance.createVisualization();
     // graphInstance.setupZoom();
   };
 
   const handleFilterUpdate = (newFilter) => {
-    graphInstance.filter = newFilter
-    graphInstance.applyFilter();
-    graphInstance.setupSimulation();
-    graphInstance.createVisualization();
-    graphInstance.setupZoom();
+    graphViz.filter = newFilter;
+    graphViz.applyFilter();
+    graphViz.setupSimulation();
+    graphViz.createVisualization();
+    graphViz.setupZoom();
   };
 
   const handleTagSelect = (newTags) => {
-    console.log(newTags)
-    graphInstance.tagFilter = newTags
-    graphInstance.applyFilter();
-    graphInstance.setupSimulation();
-    graphInstance.createVisualization();
-    graphInstance.setupZoom();
+    graphViz.tagFilter = newTags;
+    graphViz.applyFilter();
+    graphViz.setupSimulation();
+    graphViz.createVisualization();
+    graphViz.setupZoom();
   };
-
 
   return (
     <>
@@ -88,4 +84,4 @@ function ZkGraph() {
   );
 }
 
-export default ZkGraph;
+export default Graph;
