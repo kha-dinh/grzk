@@ -1,4 +1,21 @@
-type NodeConfig = {};
+export type FillConfig = {
+  normal: string;
+  highlight: string;
+};
+export type NodeConfig = {
+  baseRadius: number;
+  radiusMultiplier: number;
+  color: {
+    note: FillConfig;
+    tag: FillConfig;
+  };
+  fontSize: number;
+  textColor: string;
+  textYOffset: number;
+  dimOpacity: number;
+  highlightOpacity: number;
+  transitionDuration: number;
+};
 type LinkConfig = {
   stroke: string;
   highlight: string;
@@ -6,6 +23,7 @@ type LinkConfig = {
   dimOpacity: number;
   highlightOpacity: number;
   arrowSize: number;
+  transitionDuration: number;
 };
 type ForceConfig = {
   centerForce: number;
@@ -18,7 +36,9 @@ type ZoomConfig = {
   max: number;
   defaultScale: number;
 };
-type BackgroundConfig = {};
+type BackgroundConfig = {
+  color: string;
+};
 type OpenerConfig = {
   program: string;
 };
@@ -34,16 +54,16 @@ export type GraphConfig = {
 
 export const defaultConfig: GraphConfig = {
   node: {
-    baseRadius: 12,
-    radiusMultiplier: 0.2,
+    baseRadius: 14,
+    radiusMultiplier: 0.1,
     color: {
       note: {
-        fill: "#1f77b4",
-        highlightFill: "#ff6b6b", // Highlight color for nodes
+        normal: "#1f77b4",
+        highlight: "#ff6b6b", // Highlight color for nodes
       },
       tag: {
-        fill: "#cc77cc",
-        highlightFill: "#ff77ff",
+        normal: "#cc77cc",
+        highlight: "#ff77ff",
       },
     },
     fontSize: 25,
@@ -60,10 +80,11 @@ export const defaultConfig: GraphConfig = {
     dimOpacity: 0.2,
     highlightOpacity: 1,
     arrowSize: 3, // Size of the arrow marker
+    transitionDuration: 300,
   },
   force: {
     centerForce: 0.1, // How strongly nodes are pulled to the center (0-1)
-    repelForce: -500, // How strongly nodes push away from each other
+    repelForce: -1000, // How strongly nodes push away from each other
     linkForce: 0.2, // How strongly connected nodes pull together (0-1)
     linkDistance: 100, // Base distance between connected nodes
   },
@@ -73,7 +94,7 @@ export const defaultConfig: GraphConfig = {
     defaultScale: 0.4,
   },
   opener: {
-    program: "neovide",
+    program: "nvr",
   }, // Open configuration object with opener property
   background: {
     color: "#ffffee",

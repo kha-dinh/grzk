@@ -6,12 +6,13 @@ import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { GraphConfig, defaultConfig } from "./graphConfig";
 import { GraphVisualizer } from "./D3Graph";
-import { RawData, ZkGraph } from "./Graph";
+import { RawData, TagData, ZkGraph } from "./Graph";
+import { Option } from "@/components/ui/multi-select";
 
 function Graph() {
   const [graph, setGraph] = useState<ZkGraph>();
   const [graphViz, setGraphViz] = useState<GraphVisualizer>();
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<Map<string, TagData>>();
   const refSvg = useRef(null);
 
   useEffect(() => {
@@ -21,38 +22,46 @@ function Graph() {
         "http://localhost:3000/api/graph",
       );
 
-      const graph = new ZkGraph(fetchData!);
+      const graph = new ZkGraph(fetchData!, defaultConfig);
       const graphViz = new GraphVisualizer(svg, defaultConfig, graph);
       graphViz.initialize();
 
       setGraph(graph);
       setGraphViz(graphViz);
+      setTags(graph.getTags());
     }
     fetchData();
     return () => {};
   }, []);
 
   const handleConfigUpdate = (newConfig: GraphConfig) => {
-    graphViz.config = newConfig;
-    graphViz.setupSimulation();
+    graphViz!.config = newConfig;
+    // graphViz!.redraw();
+    graphViz!.setupSimulation();
     // graphInstance.createVisualization();
     // graphInstance.setupZoom();
   };
 
-  const handleFilterUpdate = (newFilter) => {
-    graphViz.filter = newFilter;
-    graphViz.applyFilter();
-    graphViz.setupSimulation();
-    graphViz.createVisualization();
-    graphViz.setupZoom();
+  const handleFilterUpdate = (newFilter: string) => {
+    graph!.setFilterString(newFilter);
+    graphViz!.redraw();
+    graphViz!.setupSimulation();
+    // graphViz.filter = newFilter;
+    // graphViz.applyFilter();
+    // graphViz.setupSimulation();
+    // graphViz.createVisualization();
+    // graphViz.setupZoom();
   };
 
-  const handleTagSelect = (newTags) => {
-    graphViz.tagFilter = newTags;
-    graphViz.applyFilter();
-    graphViz.setupSimulation();
-    graphViz.createVisualization();
-    graphViz.setupZoom();
+  const handleTagSelect = (newTags: Option[]) => {
+    graph!.setTagFilter(newTags);
+    graphViz!.redraw();
+    graphViz!.setupSimulation();
+    // graphViz.tagFilter = newTags;
+    // graphViz.applyFilter();
+    // graphViz.setupSimulation();
+    // graphViz.createVisualization();
+    // graphViz.setupZoom();
   };
 
   return (

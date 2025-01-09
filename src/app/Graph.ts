@@ -1,3 +1,8 @@
+import createFuzzySearch, { FuzzySearcher } from "@nozbe/microfuzz";
+import { FillConfig, GraphConfig, NodeConfig } from "./graphConfig";
+import * as d3 from "d3";
+import { Option } from "@/components/ui/multi-select";
+
 // How we identify unique nodes and edges
 type NodeIdx = string;
 type EdgeIdx = [srcPath: string, dstPath: string];
@@ -17,7 +22,7 @@ type EdgeIdx = [srcPath: string, dstPath: string];
 // "targetPath":"mzvuhqa8.md"
 // }
 
-class ZkEdge {
+class ZkEdge implements d3.SimulationLinkDatum<ZkNode> {
   // title: string = ""
   // href: string = ""
   // type: string = ""
@@ -67,12 +72,12 @@ enum ZkEdgeType {
   TAG = "tag",
 }
 
-enum ZkNodeType {
+export enum ZkNodeType {
   NOTE = "note",
   TAG = "tag",
 }
 
-class ZkNode {
+class ZkNode implements d3.SimulationNodeDatum {
   // Data from ZK
   data?: any;
   path: string;
@@ -83,15 +88,43 @@ class ZkNode {
   inEdges: number = 0;
   outEdges: number = 0;
 
-  constructor(path: string, type: ZkNodeType = ZkNodeType.NOTE, data: any) {
+  config: NodeConfig;
+
+  radius: number;
+  fill: FillConfig;
+
+  index?: number | undefined;
+  x?: number | undefined;
+  y?: number | undefined;
+  vx?: number | undefined;
+  vy?: number | undefined;
+  fx?: number | null | undefined;
+  fy?: number | null | undefined;
+
+  constructor(
+    path: string,
+    type: ZkNodeType = ZkNodeType.NOTE,
+    data: any,
+    config: NodeConfig,
+  ) {
     this.path = path;
     this.type = type;
     this.data = data;
+    this.config = config;
+    this.radius = config.baseRadius;
+    this.fill = config.color[type];
+
     if (this.data) {
       if (this.data.title.length > 60) {
         this.data.title = this.data.title.slice(0, 60) + "...";
       }
     }
+  }
+  setInEdges(n: number) {
+    this.inEdges = n;
+    this.radius =
+      this.config.baseRadius +
+      this.config.baseRadius * this.config.radiusMultiplier * n;
   }
   id() {
     return this.path;
@@ -110,18 +143,27 @@ export type RawData = {
   links: { sourcePath: string; targetPath: string }[];
   notes: { path: string }[];
 };
-class TagData {
-  nodes: String[] = [];
-}
+export type TagData = {
+  nodes: string[];
+};
 
 class ZkGraph {
   nodes: Map<NodeIdx, ZkNode> = new Map();
   edges: Map<EdgeIdx, ZkEdge> = new Map();
   tags: Map<string, TagData> = new Map();
+  config: GraphConfig;
 
-  constructor(rawData: RawData) {
+  _filteredNodes?: ZkNode[];
+
+  fuzzySearch: FuzzySearcher<ZkNode>;
+  filterString?: string;
+  tagFilter?: Option[];
+
+  constructor(rawData: RawData, config: GraphConfig) {
+    this.config = config;
+
     rawData.notes.forEach((n) => {
-      let newNode = new ZkNode(n.path, ZkNodeType.NOTE, n);
+      let newNode = new ZkNode(n.path, ZkNodeType.NOTE, n, config.node);
       this.nodes.set(newNode.path, newNode);
     });
 
@@ -150,7 +192,8 @@ class ZkGraph {
         }
 
         if (node.path === edge.target.path) {
-          node.inEdges++;
+          // NOTE: this also update radius
+          node.setInEdges(node.inEdges + 1);
         }
       });
     });
@@ -162,7 +205,7 @@ class ZkGraph {
           let tagData = this.tags.get(t);
           if (tagData) tagData.nodes.push(node.id());
           else {
-            tagData = new TagData();
+            let tagData: TagData = { nodes: [] };
             tagData.nodes.push(node.id());
             this.tags.set(t, tagData);
           }
@@ -171,7 +214,12 @@ class ZkGraph {
     });
 
     this.tags.forEach((tagData, tag) => {
-      let tagNode = new ZkNode(tag, ZkNodeType.TAG, { title: tag });
+      let tagNode = new ZkNode(
+        tag,
+        ZkNodeType.TAG,
+        { title: tag },
+        config.node,
+      );
       // Add tag nodes to graph
       this.nodes.set(tagNode.path, tagNode);
 
@@ -184,22 +232,78 @@ class ZkGraph {
 
         let tagEdge = new ZkEdge(taggedNode, tagNode, ZkEdgeType.TAG);
         this.edges.set(tagEdge.idx(), tagEdge);
+        tagNode.setInEdges(tagNode.inEdges + 1);
       });
     });
+
+    this.fuzzySearch = createFuzzySearch(
+      [...this.nodes.values()].filter((n) => n.type != ZkNodeType.TAG),
+      {
+        getText: (item) => [item.data.title],
+      },
+    );
   }
 
+  getTags() {
+    return this.tags;
+  }
   getLinks() {
     return [
       ...this.edges.values().filter((edge) => edge.type === ZkEdgeType.LINK),
     ];
   }
 
+  setTagFilter(newFilter?: Option[]) {
+    if (!newFilter || newFilter.length == 0) {
+      this.tagFilter = undefined;
+    } else {
+      this.tagFilter = newFilter;
+    }
+  }
+  setFilterString(newFilter: string) {
+    if (newFilter === "") {
+      this.filterString = undefined;
+    } else {
+      this.filterString = newFilter;
+    }
+  }
+
+  applyFilters(nodes: ZkNode[]) {
+    let filteredNodes = nodes;
+    if (this.filterString) {
+      filteredNodes = [
+        ...this.fuzzySearch(this.filterString).map((n) => n.item),
+        ...this.nodes.values().filter((n) => n.type == ZkNodeType.TAG),
+      ];
+    }
+    if (this.tagFilter) {
+      filteredNodes = filteredNodes.filter((node) => {
+        return this.tagFilter!.some((tag) => {
+          if (node.type == ZkNodeType.NOTE)
+            return node.data.tags.includes(tag.value);
+          if (node.type == ZkNodeType.TAG) return node.path === tag.value;
+        });
+      });
+    }
+
+    this._filteredNodes = filteredNodes;
+    return filteredNodes;
+  }
   getAllNodes() {
-    return [...this.nodes.values()];
+    let selectedNodes = [...this.nodes.values()];
+    return this.applyFilters(selectedNodes);
   }
 
   getAllLinks() {
-    return [...this.edges.values()];
+    let selectedEdges = this.edges
+      .values()
+      .filter(
+        (e) =>
+          this._filteredNodes!.includes(e.source) &&
+          this._filteredNodes!.includes(e.target),
+      );
+    let edges = [...selectedEdges];
+    return edges;
   }
 
   getNotes() {
@@ -214,7 +318,6 @@ class ZkGraph {
         this.edges
           .values()
           .map((edge) => {
-            // console.log(edge);
             if (edge.source == node) {
               return edge.target;
             }

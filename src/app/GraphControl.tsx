@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-import * as d3 from "d3";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -13,7 +12,10 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import { defaultConfig } from "./graphConfig";
-import MultipleSelector, { MultiSelect } from "@/components/ui/multi-select";
+import MultipleSelector, {
+  MultiSelect,
+  Option,
+} from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,12 +33,18 @@ const getStoredPosition = () => {
   return stored ? JSON.parse(stored) : { x: 20, y: 20 };
 };
 
-import { Cat, Dog, Fish, Rabbit, Turtle } from "lucide-react";
+import { TagData } from "./Graph";
+
 const ConfigControl = ({
   onConfigUpdate,
   onFilterUpdate,
   tags,
   onTagSelect,
+}: {
+  onConfigUpdate: any;
+  onFilterUpdate: any;
+  tags?: Map<string, TagData>;
+  onTagSelect: any;
 }) => {
   const [selectedFrameworks, setSelectedFrameworks] = useState([
     "react",
@@ -54,18 +62,24 @@ const ConfigControl = ({
     filter: true,
   });
 
-  tags = tags
-    .map((d) => {
-      return { ...d, value: d.name, label: d.name };
-    })
-    .sort((a, b) => b.noteCount - a.noteCount);
+  let processedTags: Option[] = [];
+  if (tags)
+    processedTags = [
+      ...tags.entries().map(([d, data]) => {
+        return { value: d, label: d, count: data.nodes.length };
+      }),
+    ]
+      .sort((a, b) => b.count - a.count)
+      .map((d) => {
+        return { value: d.value, label: d.label };
+      });
 
   // Save position to localStorage when it changes
   useEffect(() => {
     localStorage.setItem("configSliderPosition", JSON.stringify(position));
   }, [position]);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: any) => {
     if (e.target.closest(".handle")) {
       setIsDragging(true);
       setDragOffset({
@@ -76,7 +90,7 @@ const ConfigControl = ({
     }
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: any) => {
     if (isDragging) {
       const newX = Math.max(
         0,
@@ -133,11 +147,11 @@ const ConfigControl = ({
     onConfigUpdate(newConfig);
   };
 
-  const handleFilterChange = (value) => {
+  const handleFilterChange = (value: string) => {
     onFilterUpdate(value);
   };
 
-  const toggleSection = (section) => {
+  const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
@@ -319,9 +333,9 @@ const ConfigControl = ({
                       />
 
                       <MultipleSelector
-                        options={tags}
+                        options={processedTags}
                         onChange={onTagSelect}
-                        defaultValue={[]}
+                        // defaultValue={undefined}
                         placeholder="Select tag(s)"
                       ></MultipleSelector>
                     </div>
