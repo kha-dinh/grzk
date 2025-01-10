@@ -52,6 +52,12 @@ class ZkEdge implements d3.SimulationLinkDatum<ZkNode> {
   }
 }
 
+export type GraphFilter = {
+  filterString?: string;
+  tags?: Option[];
+  fuzzySearch: FuzzySearcher<ZkNode>;
+};
+
 // {
 // "filename":"3eot91og.md",
 // "filenameStem":"3eot91og",
@@ -155,9 +161,9 @@ class ZkGraph {
 
   _filteredNodes?: ZkNode[];
 
-  fuzzySearch: FuzzySearcher<ZkNode>;
-  filterString?: string;
-  tagFilter?: Option[];
+  filter: GraphFilter;
+  // filterString?: string;
+  // tagFilter?: Option[];
 
   constructor(rawData: RawData, config: GraphConfig) {
     this.config = config;
@@ -236,12 +242,15 @@ class ZkGraph {
       });
     });
 
-    this.fuzzySearch = createFuzzySearch(
+    const searcher = createFuzzySearch(
       [...this.nodes.values()].filter((n) => n.type != ZkNodeType.TAG),
       {
         getText: (item) => [item.data.title],
       },
     );
+    this.filter = {
+      fuzzySearch: searcher,
+    };
   }
 
   getTags() {
@@ -253,32 +262,42 @@ class ZkGraph {
     ];
   }
 
-  setTagFilter(newFilter?: Option[]) {
-    if (!newFilter || newFilter.length == 0) {
-      this.tagFilter = undefined;
-    } else {
-      this.tagFilter = newFilter;
-    }
+  // setTagFilter(newFilter?: Option[]) {
+  //   if (!newFilter || newFilter.length == 0) {
+  //     this.tagFilter = undefined;
+  //   } else {
+  //     this.tagFilter = newFilter;
+  //   }
+  // }
+  setFilter(newFilter: GraphFilter) {
+    // Object.assign(this.filter, newFilter);
+    if (newFilter?.filterString === "") this.filter.filterString = undefined;
+    else this.filter.filterString = newFilter.filterString;
+
+    if (newFilter?.tags?.length == 0) this.filter.tags = undefined;
+    else this.filter.tags = newFilter?.tags;
+    // this.setFilterString(newFilter.filterString);
+    // this.setTagFilter(newFilter.tags);
   }
-  setFilterString(newFilter: string) {
-    if (newFilter === "") {
-      this.filterString = undefined;
-    } else {
-      this.filterString = newFilter;
-    }
-  }
+  // setFilterString(newFilter: string) {
+  //   if (newFilter === "") {
+  //     this.filterString = undefined;
+  //   } else {
+  //     this.filterString = newFilter;
+  //   }
+  // }
 
   applyFilters(nodes: ZkNode[]) {
     let filteredNodes = nodes;
-    if (this.filterString) {
+    if (this.filter.filterString) {
       filteredNodes = [
-        ...this.fuzzySearch(this.filterString).map((n) => n.item),
+        ...this.filter.fuzzySearch(this.filter.filterString).map((n) => n.item),
         ...this.nodes.values().filter((n) => n.type == ZkNodeType.TAG),
       ];
     }
-    if (this.tagFilter) {
+    if (this.filter.tags) {
       filteredNodes = filteredNodes.filter((node) => {
-        return this.tagFilter!.some((tag) => {
+        return this.filter.tags!.some((tag) => {
           if (node.type == ZkNodeType.NOTE)
             return node.data.tags.includes(tag.value);
           if (node.type == ZkNodeType.TAG) return node.path === tag.value;

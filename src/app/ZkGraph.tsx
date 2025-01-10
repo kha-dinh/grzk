@@ -5,90 +5,60 @@ import React, { useRef, useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { GraphConfig, defaultConfig } from "./graphConfig";
-import { GraphVisualizer } from "./D3Graph";
-import { RawData, TagData, ZkGraph } from "./Graph";
+import D3Graph, { GraphVisualizer } from "./D3Graph";
+import { GraphFilter, RawData, TagData, ZkGraph } from "./Graph";
 import { Option } from "@/components/ui/multi-select";
+import { tryGetStored } from "./Utils";
 
 function Graph() {
   const [graph, setGraph] = useState<ZkGraph>();
-  const [graphViz, setGraphViz] = useState<GraphVisualizer>();
-  const [tags, setTags] = useState<Map<string, TagData>>();
-  const refSvg = useRef(null);
+  const [config, setConfig] = useState(tryGetStored("config", defaultConfig));
+  const [filter, setFilter] = useState<GraphFilter>(
+    tryGetStored("filter", null),
+  );
 
   useEffect(() => {
-    const svg = d3.select(refSvg.current);
+    localStorage.setItem("config", JSON.stringify(config));
+  }, [config]);
+  useEffect(() => {
+    localStorage.setItem("filter", JSON.stringify(filter));
+  }, [filter]);
+
+  useEffect(() => {
     async function fetchData() {
       const fetchData: RawData | undefined = await d3.json(
         "http://localhost:3000/api/graph",
       );
 
-      const graph = new ZkGraph(fetchData!, defaultConfig);
-      const graphViz = new GraphVisualizer(svg, defaultConfig, graph);
-      graphViz.initialize();
-
+      const graph = new ZkGraph(fetchData!, config);
       setGraph(graph);
-      setGraphViz(graphViz);
-      setTags(graph.getTags());
     }
     fetchData();
-    return () => {};
   }, []);
 
   const handleConfigUpdate = (newConfig: GraphConfig) => {
-    graphViz!.config = newConfig;
-    // graphViz!.redraw();
-    graphViz!.setupSimulation();
-    // graphInstance.createVisualization();
-    // graphInstance.setupZoom();
+    setConfig(newConfig);
   };
 
   const handleFilterUpdate = (newFilter: string) => {
-    graph!.setFilterString(newFilter);
-    graphViz!.redraw();
-    graphViz!.setupSimulation();
-    // graphViz.filter = newFilter;
-    // graphViz.applyFilter();
-    // graphViz.setupSimulation();
-    // graphViz.createVisualization();
-    // graphViz.setupZoom();
+    setFilter({ ...filter, filterString: newFilter });
   };
 
   const handleTagSelect = (newTags: Option[]) => {
-    graph!.setTagFilter(newTags);
-    graphViz!.redraw();
-    graphViz!.setupSimulation();
-    // graphViz.tagFilter = newTags;
-    // graphViz.applyFilter();
-    // graphViz.setupSimulation();
-    // graphViz.createVisualization();
-    // graphViz.setupZoom();
+    setFilter({ ...filter, tags: newTags });
   };
 
   return (
     <>
       <ConfigControl
+        config={config}
+        filter={filter}
         onConfigUpdate={handleConfigUpdate}
         onFilterUpdate={handleFilterUpdate}
-        tags={tags}
+        tags={graph?.getTags()}
         onTagSelect={handleTagSelect}
       />
-      <div className="graph-container">
-        <svg
-          ref={refSvg}
-          style={{
-            height: "100vh",
-            width: "100%",
-            position: "fixed",
-            backgroundColor: defaultConfig.background.color,
-            top: 0,
-            left: 0,
-          }}
-        >
-          <g className="plot-area" />
-          <g className="x-axis" />
-          <g className="y-axis" />
-        </svg>
-      </div>
+      <D3Graph config={config} filter={filter} graph={graph}></D3Graph>
     </>
   );
 }

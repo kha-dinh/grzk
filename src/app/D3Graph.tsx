@@ -1,6 +1,7 @@
 import * as d3 from "d3";
-import { ZkNode, ZkGraph, ZkEdge } from "./Graph";
-import { GraphConfig } from "./graphConfig.js";
+import { ZkNode, ZkGraph, ZkEdge, RawData, GraphFilter } from "./Graph";
+import { GraphConfig } from "./graphConfig";
+import { useEffect, useRef, useState } from "react";
 
 type SvgSelection = d3.Selection<any, any, any, undefined>;
 export class GraphVisualizer {
@@ -17,20 +18,9 @@ export class GraphVisualizer {
     this.config = config;
     // this.data = this.processGraphData(rawData, tags);
     this.graph = graph;
-
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
     this.simulation = d3.forceSimulation(this.graph.getAllNodes());
-    let allLinks = this.graph.getAllLinks();
-    this.links = this.setupLinks(allLinks);
-
-    // Update position on tick
-    this.simulation.on("tick.links", () => {
-      this.links
-        .attr("x1", (d) => d.source.x!)
-        .attr("y1", (d) => d.source.y!)
-        .attr("x2", (d) => d.target.x!)
-        .attr("y2", (d) => d.target.y!);
-    });
+    this.links = this.setupLinks(this.graph.getAllLinks());
 
     this.nodes = this.createNodeGroup(this.graph.getAllNodes());
   }
@@ -51,6 +41,7 @@ export class GraphVisualizer {
   }
 
   setupSimulation() {
+    // this.simulation.nodes(this.graph.getAllNodes());
     this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(2).restart();
 
     this.simulation
@@ -75,6 +66,15 @@ export class GraphVisualizer {
       "collide",
       d3.forceCollide((d) => d.radius),
     );
+
+    // Update position on tick
+    this.simulation.on("tick.links", () => {
+      this.links
+        .attr("x1", (d) => d.source.x!)
+        .attr("y1", (d) => d.source.y!)
+        .attr("x2", (d) => d.target.x!)
+        .attr("y2", (d) => d.target.y!);
+    });
   }
 
   setupZoom() {
@@ -122,19 +122,22 @@ export class GraphVisualizer {
       .join("g");
 
     container
-      .append("circle")
-      .attr("r", (d) => d.radius)
-      .attr("fill", (d) => d.fill.normal);
-
-    // Add labels to nodes with updated positioning and color
-    container
+      .append("g")
       .append("text")
       .attr("dy", (d) => d.radius + this.config.node.fontSize)
       .attr("text-anchor", "middle")
       .style("fill", this.config.node.textColor)
       .style("font-size", this.config.node.fontSize)
-      .attr("hidden", null)
+      // .attr("hidden", null)
       .text((d) => d.data.title);
+
+    container
+      .append("g")
+      .append("circle")
+      .attr("r", (d) => d.radius)
+      .attr("fill", (d) => d.fill.normal);
+
+    // Add labels to nodes with updated positioning and color
 
     // Add tooltips
     container
@@ -286,3 +289,64 @@ export class GraphVisualizer {
     }
   }
 }
+
+const D3Graph = ({
+  config,
+  filter,
+  graph,
+}: {
+  config: GraphConfig;
+  graph?: ZkGraph;
+  filter?: GraphFilter;
+}) => {
+  const refSvg = useRef(null);
+  const [graphViz, setGraphViz] = useState<GraphVisualizer>();
+
+  useEffect(() => {
+    if (!graph) return;
+    if (!graphViz) {
+      const svg = d3.select(refSvg.current);
+      const graphViz = new GraphVisualizer(svg, config, graph);
+      graphViz.initialize();
+      setGraphViz(graphViz);
+    } else {
+      graphViz.graph = graph;
+      setGraphViz(graphViz);
+    }
+  }, [graph]);
+
+  useEffect(() => {
+    if (!graphViz) return;
+    if (config) {
+      graphViz.config = config;
+      graphViz?.setupSimulation();
+    }
+    if (filter) {
+      graphViz?.graph.setFilter(filter);
+      graphViz?.redraw();
+      graphViz?.setupSimulation();
+    }
+  }, [graphViz, filter, config]);
+
+  return (
+    <div className="graph-container">
+      <svg
+        ref={refSvg}
+        style={{
+          height: "100vh",
+          width: "100%",
+          position: "fixed",
+          backgroundColor: config.background.color,
+          top: 0,
+          left: 0,
+        }}
+      >
+        <g className="plot-area" />
+        <g className="x-axis" />
+        <g className="y-axis" />
+      </svg>
+    </div>
+  );
+};
+
+export default D3Graph;

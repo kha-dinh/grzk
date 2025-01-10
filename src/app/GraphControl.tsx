@@ -11,11 +11,8 @@ import {
   ChevronRight,
   ChevronsUpDown,
 } from "lucide-react";
-import { defaultConfig } from "./graphConfig";
-import MultipleSelector, {
-  MultiSelect,
-  Option,
-} from "@/components/ui/multi-select";
+import { defaultConfig, FillConfig, GraphConfig } from "./graphConfig";
+import MultipleSelector, { Option } from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,33 +22,27 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 
-const getStoredPosition = () => {
-  let stored = undefined;
-  if (global?.window !== undefined) {
-    stored = localStorage.getItem("configSliderPosition");
-  }
-  return stored ? JSON.parse(stored) : { x: 20, y: 20 };
-};
-
-import { TagData } from "./Graph";
+import { GraphFilter, TagData } from "./Graph";
+import { tryGetStored } from "./Utils";
 
 const ConfigControl = ({
+  tags,
+  config,
+  filter,
   onConfigUpdate,
   onFilterUpdate,
-  tags,
   onTagSelect,
 }: {
   onConfigUpdate: any;
+  config: GraphConfig;
+  filter: GraphFilter;
   onFilterUpdate: any;
   tags?: Map<string, TagData>;
   onTagSelect: any;
 }) => {
-  const [selectedFrameworks, setSelectedFrameworks] = useState([
-    "react",
-    "angular",
-  ]);
-  const [config, setConfig] = useState(defaultConfig);
-  const [position, setPosition] = useState(getStoredPosition);
+  const [position, setPosition] = useState(
+    tryGetStored("configPosition", { x: 20, y: 20 }),
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isMinimized, setIsMinimized] = useState(false);
@@ -76,7 +67,7 @@ const ConfigControl = ({
 
   // Save position to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem("configSliderPosition", JSON.stringify(position));
+    localStorage.setItem("configPosition", JSON.stringify(position));
   }, [position]);
 
   const handleMouseDown = (e: any) => {
@@ -111,6 +102,9 @@ const ConfigControl = ({
   const handleMouseUp = () => {
     setIsDragging(false);
   };
+  const handleReset = () => {
+    onConfigUpdate(defaultConfig);
+  };
 
   useEffect(() => {
     if (isDragging) {
@@ -135,7 +129,11 @@ const ConfigControl = ({
   //   return () => { };
   // }, [])
 
-  const handleSliderChange = (category, parameter, value) => {
+  const handleSliderChange = (
+    category: string,
+    parameter: string,
+    value: string,
+  ) => {
     const newConfig = {
       ...config,
       [category]: {
@@ -143,12 +141,8 @@ const ConfigControl = ({
         [parameter]: parseFloat(value),
       },
     };
-    setConfig(newConfig);
+    // setConfig(newConfig);
     onConfigUpdate(newConfig);
-  };
-
-  const handleFilterChange = (value: string) => {
-    onFilterUpdate(value);
   };
 
   const toggleSection = (section: string) => {
@@ -248,6 +242,14 @@ const ConfigControl = ({
 
         {!isMinimized && (
           <CardContent className="p-4">
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              size="sm"
+              className="center px-4"
+            >
+              Reset to Defaults
+            </Button>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Collapsible
@@ -327,16 +329,15 @@ const ConfigControl = ({
                       <Input
                         type="text"
                         placeholder="Title"
-                        // value={config.filter.centerForce}
-                        onChange={(e) => handleFilterChange(e.target.value)}
+                        value={filter?.filterString}
+                        onChange={(e) => onFilterUpdate(e.target.value)}
                         className="w-full h-8"
                       />
-
                       <MultipleSelector
                         options={processedTags}
                         onChange={onTagSelect}
-                        // defaultValue={undefined}
                         placeholder="Select tag(s)"
+                        value={filter?.tags}
                       ></MultipleSelector>
                     </div>
                   </CollapsibleContent>
