@@ -98,6 +98,10 @@ export class GraphVisualizer {
       );
   }
 
+  showHideTitles(showTitle: boolean) {
+    if (showTitle) this.zoomGroup.selectAll("text").attr("hidden", null);
+    else this.zoomGroup.selectAll("text").attr("hidden", true);
+  }
   // From link data, create link visualization and setup simulation force
   setupLinks(links: ZkEdge[]) {
     let container = this.zoomGroup
@@ -294,10 +298,12 @@ const D3Graph = ({
   config,
   filter,
   graph,
+  showTitle,
 }: {
-  config: GraphConfig;
+  config?: GraphConfig;
   graph?: ZkGraph;
   filter?: GraphFilter;
+  showTitle: boolean;
 }) => {
   const refSvg = useRef(null);
   const [graphViz, setGraphViz] = useState<GraphVisualizer>();
@@ -308,9 +314,7 @@ const D3Graph = ({
       const svg = d3.select(refSvg.current);
       const graphViz = new GraphVisualizer(svg, config, graph);
       graphViz.initialize();
-      setGraphViz(graphViz);
-    } else {
-      graphViz.graph = graph;
+      graphViz?.showHideTitles(showTitle);
       setGraphViz(graphViz);
     }
   }, [graph]);
@@ -318,15 +322,23 @@ const D3Graph = ({
   useEffect(() => {
     if (!graphViz) return;
     if (config) {
-      graphViz.config = config;
+      graphViz!.config = config;
       graphViz?.setupSimulation();
     }
+  }, [graphViz, config]);
+  useEffect(() => {
+    if (!graphViz) return;
     if (filter) {
       graphViz?.graph.setFilter(filter);
       graphViz?.redraw();
+      graphViz?.showHideTitles(showTitle);
       graphViz?.setupSimulation();
     }
-  }, [graphViz, filter, config]);
+  }, [graphViz, filter]);
+
+  useEffect(() => {
+    graphViz?.showHideTitles(showTitle);
+  }, [graphViz, showTitle]);
 
   return (
     <div className="graph-container">

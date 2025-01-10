@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 
 import { GraphFilter, TagData } from "./Graph";
 import { tryGetStored } from "./Utils";
+import { Switch } from "@/components/ui/switch";
 
 const ConfigControl = ({
   tags,
@@ -32,11 +33,15 @@ const ConfigControl = ({
   onConfigUpdate,
   onFilterUpdate,
   onTagSelect,
+  onShowTitle,
+  showTitle,
 }: {
+  showTitle: boolean;
   onConfigUpdate: any;
   config: GraphConfig;
   filter: GraphFilter;
   onFilterUpdate: any;
+  onShowTitle: any;
   tags?: Map<string, TagData>;
   onTagSelect: any;
 }) => {
@@ -242,16 +247,27 @@ const ConfigControl = ({
 
         {!isMinimized && (
           <CardContent className="p-4">
-            <Button
-              variant="outline"
-              onClick={handleReset}
-              size="sm"
-              className="center px-4"
-            >
-              Reset to Defaults
-            </Button>
             <div className="space-y-4">
               <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  onClick={handleReset}
+                  size="sm"
+                  className="center px-4 w-full"
+                >
+                  Reset to Defaults
+                </Button>
+                <div className="flex space-x-4 justify-between items-center px-4">
+                  <Label className="font-semibold">Show titles</Label>
+                  <Switch
+                    id="show-text"
+                    checked={showTitle}
+                    onCheckedChange={onShowTitle}
+                    // onCheckedChange={(checked) =>
+                    //   handleSliderChange("force", "showText", checked)
+                    // }
+                  />
+                </div>
                 <Collapsible
                   open={expandedSections.force}
                   onOpenChange={() => {
@@ -315,7 +331,6 @@ const ConfigControl = ({
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
-
                 <Collapsible
                   open={expandedSections.filter}
                   onOpenChange={() => {

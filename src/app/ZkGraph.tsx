@@ -13,6 +13,7 @@ import { tryGetStored } from "./Utils";
 function Graph() {
   const [graph, setGraph] = useState<ZkGraph>();
   const [config, setConfig] = useState(tryGetStored("config", defaultConfig));
+  const [showTitle, setShowTitle] = useState(tryGetStored("showTitle", true));
   const [filter, setFilter] = useState<GraphFilter>(
     tryGetStored("filter", null),
   );
@@ -47,10 +48,16 @@ function Graph() {
   const handleTagSelect = (newTags: Option[]) => {
     setFilter({ ...filter, tags: newTags });
   };
+  const handleShowTitle = (checked) => {
+    console.log(checked);
+    setShowTitle(checked);
+  };
 
   return (
     <>
       <ConfigControl
+        showTitle={showTitle}
+        onShowTitle={handleShowTitle}
         config={config}
         filter={filter}
         onConfigUpdate={handleConfigUpdate}
@@ -58,7 +65,12 @@ function Graph() {
         tags={graph?.getTags()}
         onTagSelect={handleTagSelect}
       />
-      <D3Graph config={config} filter={filter} graph={graph}></D3Graph>
+      <D3Graph
+        config={config}
+        filter={filter}
+        graph={graph}
+        showTitle={showTitle}
+      ></D3Graph>
     </>
   );
 }
