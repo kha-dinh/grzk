@@ -318,8 +318,8 @@ class ZkGraph {
       .values()
       .filter(
         (e) =>
-          this._filteredNodes!.includes(e.source) &&
-          this._filteredNodes!.includes(e.target),
+          this._filteredNodes?.includes(e.source) &&
+          this._filteredNodes?.includes(e.target),
       );
     let edges = [...selectedEdges];
     return edges;

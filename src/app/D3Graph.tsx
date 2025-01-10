@@ -19,9 +19,9 @@ export class GraphVisualizer {
     // this.data = this.processGraphData(rawData, tags);
     this.graph = graph;
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
-    this.simulation = d3.forceSimulation(this.graph.getAllNodes());
-    this.links = this.setupLinks(this.graph.getAllLinks());
+    this.simulation = d3.forceSimulation();
 
+    this.links = this.setupLinks(this.graph.getAllLinks());
     this.nodes = this.createNodeGroup(this.graph.getAllNodes());
   }
 
@@ -41,8 +41,8 @@ export class GraphVisualizer {
   }
 
   setupSimulation() {
-    // this.simulation.nodes(this.graph.getAllNodes());
-    this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(2).restart();
+    this.simulation.nodes(this.graph.getAllNodes());
+    this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(1).restart();
 
     this.simulation
       .force("x", d3.forceX().strength(this.config.force.centerForce))
@@ -309,7 +309,7 @@ const D3Graph = ({
   const [graphViz, setGraphViz] = useState<GraphVisualizer>();
 
   useEffect(() => {
-    if (!graph) return;
+    if (!graph || !config) return;
     if (!graphViz) {
       const svg = d3.select(refSvg.current);
       const graphViz = new GraphVisualizer(svg, config, graph);
@@ -320,20 +320,17 @@ const D3Graph = ({
   }, [graph]);
 
   useEffect(() => {
-    if (!graphViz) return;
-    if (config) {
-      graphViz!.config = config;
-      graphViz?.setupSimulation();
-    }
+    if (!graphViz || !config) return;
+    graphViz!.config = config;
+    graphViz?.setupSimulation();
   }, [graphViz, config]);
   useEffect(() => {
-    if (!graphViz) return;
-    if (filter) {
-      graphViz?.graph.setFilter(filter);
-      graphViz?.redraw();
-      graphViz?.showHideTitles(showTitle);
-      graphViz?.setupSimulation();
-    }
+    if (!graphViz || !filter) return;
+    graphViz?.graph.setFilter(filter);
+    // TODO: manage showhide state
+    graphViz?.showHideTitles(showTitle);
+    graphViz?.redraw();
+    graphViz?.setupSimulation();
   }, [graphViz, filter]);
 
   useEffect(() => {
@@ -348,7 +345,7 @@ const D3Graph = ({
           height: "100vh",
           width: "100%",
           position: "fixed",
-          backgroundColor: config.background.color,
+          backgroundColor: config?.background.color,
           top: 0,
           left: 0,
         }}
