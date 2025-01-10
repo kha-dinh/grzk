@@ -69,7 +69,7 @@ export const defaultConfig: GraphConfig = {
     fontSize: 25,
     textColor: "#333333", // Added text color configuration
     textYOffset: 30, // Added offset for text below node
-    dimOpacity: 0.2,
+    dimOpacity: 0.5,
     highlightOpacity: 1,
     transitionDuration: 300,
   },
@@ -77,7 +77,7 @@ export const defaultConfig: GraphConfig = {
     stroke: "#999",
     highlight: "#ff6b6b",
     opacity: 1,
-    dimOpacity: 0.2,
+    dimOpacity: 0.5,
     highlightOpacity: 1,
     arrowSize: 3, // Size of the arrow marker
     transitionDuration: 300,
