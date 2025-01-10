@@ -253,7 +253,7 @@ const ConfigControl = ({
                   variant="outline"
                   onClick={handleReset}
                   size="sm"
-                  className="center px-4 w-full"
+                  className="mx-4"
                 >
                   Reset to Defaults
                 </Button>
@@ -294,7 +294,7 @@ const ConfigControl = ({
                         Repel Force: {config.force.repelForce}
                       </Label>
                       <Slider
-                        min={-1000}
+                        min={-5000}
                         max={0}
                         step={50}
                         defaultValue={[config.force.repelForce]}
