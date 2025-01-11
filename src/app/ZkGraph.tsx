@@ -84,16 +84,13 @@ function Graph() {
       .values().map((v) => JSON.parse(v))]
     setFilter({ ...filter, tags: newSet });
   };
-  const handleShowTitle = (checked: boolean) => {
-    setShowTitle(checked);
-  };
 
   return (
     graph ?
       <>
         <ConfigControl
           showTitle={showTitle}
-          onShowTitle={handleShowTitle}
+          onShowTitle={setShowTitle}
           config={config}
           filter={filter}
           onConfigUpdate={handleConfigUpdate}

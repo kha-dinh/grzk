@@ -22,7 +22,6 @@ export class GraphVisualizer {
 
     this.svg = svg;
     this.config = config;
-    // this.data = this.processGraphData(rawData, tags);
     this.graph = graph;
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
     this.simulation = d3.forceSimulation();
@@ -46,6 +45,7 @@ export class GraphVisualizer {
   setupSimulation() {
     if (!this.links || !this.nodes)
       return;
+    this.graph.applyFilters();
     this.simulation.nodes(this.graph.getFilteredNodes());
     this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(1).restart();
 
@@ -61,7 +61,7 @@ export class GraphVisualizer {
     this.simulation.force(
       "link",
       d3
-        .forceLink(this.graph.getAllLinks())
+        .forceLink(this.graph.getFilteredLinks())
         .id((d: any) => d.path)
         .strength(this.config.force.linkForce)
         .distance(this.config.force.linkDistance),
@@ -118,7 +118,7 @@ export class GraphVisualizer {
       .join("line")
       .attr("stroke", this.config.link.stroke)
       .attr("stroke-opacity", this.config.link.opacity)
-      .attr("stroke-width", 2);
+      .attr("stroke-width", 1);
 
     return container;
   }
@@ -221,7 +221,14 @@ export class GraphVisualizer {
           .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
           .style("transition", `fill ${this.config.node.transitionDuration}ms`)
-          .style("fill", (n: any) => n.fill.highlight);
+          .style("fill", (n: any) => n.fill.highlight)
+          .filter(
+            (n: any) =>
+              n.path === d.path
+          )
+          .style("transition", `r ${this.config.node.transitionDuration}ms`)
+          .attr("r", (d: any) => d.radius * 1.1)
+          ;
 
         // // Show text for hovered node
         // d3.select(event.currentTarget).select("text").attr("hidden", null);
@@ -262,7 +269,10 @@ export class GraphVisualizer {
           .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
           .style("transition", `fill ${this.config.node.transitionDuration}ms`)
-          .style("fill", (d: any) => d.fill.normal);
+          .style("fill", (d: any) => d.fill.normal)
+          .style("transition", `r ${this.config.node.transitionDuration}ms`)
+          .attr("r", (d) => d.radius)
+          ;
 
         // // Hide all text
         // this.zoomGroup
@@ -326,15 +336,16 @@ const D3Graph = ({
     graphViz.render();
     graphViz.setupSimulation();
     graphViz.setupZoom();
+    graphViz.showHideTitles(showTitle);
   }, [graphViz, config]);
 
   useEffect(() => {
     if (!graphViz || !filter) return;
     graphViz.graph.setFilter(filter);
     // TODO: manage showhide state
-    graphViz.showHideTitles(showTitle);
     graphViz.render();
     graphViz.setupSimulation();
+    graphViz.showHideTitles(showTitle);
   }, [graphViz, filter]);
 
   useEffect(() => {

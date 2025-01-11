@@ -52,32 +52,36 @@ export type GraphConfig = {
   background: BackgroundConfig;
 };
 
+const TEXTCOLOR = "#aaaab3"
+const TEXTCOLOR2 = "#bbbbc6"
+const BACKGROUND = "#151515"
+const HIGHLIGHT1 = "#a78af9"
 export const defaultConfig: GraphConfig = {
   node: {
     baseRadius: 14,
     radiusMultiplier: 0.1,
     color: {
       note: {
-        normal: "#1f77b4",
-        highlight: "#ff6b6b", // Highlight color for nodes
+        normal: TEXTCOLOR,
+        highlight: HIGHLIGHT1, // Highlight color for nodes
       },
       tag: {
-        normal: "#cc77cc",
-        highlight: "#ff77ff",
+        normal: TEXTCOLOR2,
+        highlight: HIGHLIGHT1,
       },
     },
     fontSize: 25,
-    textColor: "#333333", // Added text color configuration
+    textColor: TEXTCOLOR, // Added text color configuration
     textYOffset: 30, // Added offset for text below node
     dimOpacity: 0.5,
     highlightOpacity: 1,
     transitionDuration: 300,
   },
   link: {
-    stroke: "#999",
-    highlight: "#ff6b6b",
-    opacity: 1,
-    dimOpacity: 0.5,
+    stroke: TEXTCOLOR,
+    highlight: HIGHLIGHT1,
+    opacity: 0.7,
+    dimOpacity: 0.3,
     highlightOpacity: 1,
     arrowSize: 3, // Size of the arrow marker
     transitionDuration: 300,
@@ -97,6 +101,7 @@ export const defaultConfig: GraphConfig = {
     program: "nvr",
   }, // Open configuration object with opener property
   background: {
-    color: "#ffffee",
+    // color: "#ffffee",
+    color: BACKGROUND,
   },
 };
