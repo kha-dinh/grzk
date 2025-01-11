@@ -13,8 +13,13 @@ export class GraphVisualizer {
   nodes?: SvgSelection;
   links?: SvgSelection;
   onScaleUpdate: (arg: number) => void;
+  onNodeSelect: (node: ZkNode) => void;
 
-  constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph, onScaleUpdate: (arg: number) => void) {
+  constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph,
+    onScaleUpdate: (arg: number) => void,
+    onNodeSelect: (node: ZkNode) => void
+  ) {
+
     this.svg = svg;
     this.config = config;
     // this.data = this.processGraphData(rawData, tags);
@@ -22,6 +27,7 @@ export class GraphVisualizer {
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
     this.simulation = d3.forceSimulation();
     this.onScaleUpdate = onScaleUpdate;
+    this.onNodeSelect = onNodeSelect;
   }
 
   async render() {
@@ -278,20 +284,9 @@ export class GraphVisualizer {
           .style("stroke", this.config.link.stroke)
           .style("stroke-width", 1);
       })
-      .on("click", this.handleNodeClick);
+      .on("click", this.onNodeSelect);
   }
 
-  handleNodeClick(event: any) {
-    const node: ZkNode = event.srcElement.__data__;
-    const file = node.data.absPath;
-    if (file) {
-      const request = new XMLHttpRequest();
-      request.open("GET", "http://localhost:3000/api/open?file=" + file, false);
-      request.send();
-    } else {
-      console.log(`File for ${node.path} not found`);
-    }
-  }
 }
 
 const D3Graph = ({
@@ -300,6 +295,7 @@ const D3Graph = ({
   graph,
   showTitle,
   onScaleUpdate,
+  onNodeSelect,
 }: {
   config: GraphConfig;
   graph: ZkGraph;
@@ -313,7 +309,12 @@ const D3Graph = ({
   useEffect(() => {
     if (!graphViz) {
       const svg = d3.select(refSvg.current);
-      const graphViz = new GraphVisualizer(svg, config, graph, onScaleUpdate);
+      const graphViz = new GraphVisualizer(svg,
+        config,
+        graph,
+        onScaleUpdate,
+        onNodeSelect
+      );
       graphViz.setupZoom();
       setGraphViz(graphViz);
     }
@@ -328,7 +329,7 @@ const D3Graph = ({
   }, [graphViz, config]);
 
   useEffect(() => {
-    if (!graphViz) return;
+    if (!graphViz || !filter) return;
     graphViz.graph.setFilter(filter);
     // TODO: manage showhide state
     graphViz.showHideTitles(showTitle);

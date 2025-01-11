@@ -268,6 +268,8 @@ class ZkGraph {
 
     if (newFilter?.tags?.length == 0) this.filter.tags = undefined;
     else this.filter.tags = newFilter?.tags;
+    // this.setFilterString(newFilter.filterString);
+    // this.setTagFilter(newFilter.tags);
   }
 
   applyFilters() {

@@ -400,7 +400,7 @@ const ConfigControl = ({
                 Radius: {config.node.baseRadius}
               </Label>
               <Slider
-                min={5} max={100} step={1}
+                min={5} max={30} step={1}
                 value={[config.node.baseRadius]}
                 onValueChange={(v) => handleSliderChange("node", "baseRadius", v[0])}
                 className="w-full"
@@ -416,7 +416,7 @@ const ConfigControl = ({
                 Zoom: {config.zoom.defaultScale}
               </Label>
               <Slider
-                min={config.zoom.min} max={config.zoom.max} step={0.1}
+                min={config.zoom.min} max={config.zoom.max} step={0.05}
                 value={[config.zoom.defaultScale]}
                 onValueChange={(v) => handleSliderChange("zoom", "defaultScale", v[0])}
                 className="w-full"

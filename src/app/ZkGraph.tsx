@@ -6,7 +6,7 @@ import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { GraphConfig, defaultConfig } from "./graphConfig";
 import D3Graph, { GraphVisualizer } from "./D3Graph";
-import { GraphFilter, RawData, TagData, ZkGraph } from "./Graph";
+import { GraphFilter, RawData, TagData, ZkGraph, ZkNode, ZkNodeType } from "./Graph";
 import { Option } from "@/components/ui/multi-select";
 import { tryGetStored } from "./Utils";
 import { Progress } from "@/components/ui/progress";
@@ -53,13 +53,36 @@ function Graph() {
     setConfig(newConfig);
   };
 
+  const handleNodeSelect = (event: any) => {
+    const node: ZkNode = event.srcElement.__data__;
+    switch (node.type) {
+      case ZkNodeType.NOTE:
+        let file = node.data.absPath
+        if (file) {
+          const request = new XMLHttpRequest();
+          request.open("GET", "http://localhost:3000/api/open?file=" + file, false);
+          request.send();
+        } else {
+          console.log(`File for ${node.path} not found`);
+        }
+        break;
+      case ZkNodeType.TAG:
+        let newTags = [{ value: node.path, label: node.path }]
+        handleTagSelect(newTags);
+        break;
+
+    }
+
+  }
 
   const handleFilterUpdate = (newFilter: string) => {
     setFilter({ ...filter, filterString: newFilter });
   };
 
   const handleTagSelect = (newTags: Option[]) => {
-    setFilter({ ...filter, tags: newTags });
+    let newSet = [...new Set([...newTags.map((t) => JSON.stringify(t))])
+      .values().map((v) => JSON.parse(v))]
+    setFilter({ ...filter, tags: newSet });
   };
   const handleShowTitle = (checked: boolean) => {
     setShowTitle(checked);
@@ -84,6 +107,7 @@ function Graph() {
           graph={graph}
           showTitle={showTitle}
           onScaleUpdate={handleZoomUpdate}
+          onNodeSelect={handleNodeSelect}
         ></D3Graph>
       </> : <></>
   );
