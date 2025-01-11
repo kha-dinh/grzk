@@ -99,7 +99,8 @@ const ForceControl = ({ config, handleSliderChange }: { config: GraphConfig; han
   );
 };
 
-const GraphControlCollapsible = ({ children, openSection, title, sectionName, toggleSection }: { children: any }) => {
+const GraphControlCollapsible = ({ children, openSection, title, sectionName, toggleSection }:
+  { children: any, openSection: boolean, title: string, sectionName: string, toggleSection: (arg: string) => void }) => {
   return <div className="py-2"><Collapsible
     open={openSection}
     onOpenChange={() => {
@@ -257,20 +258,6 @@ const ConfigControl = ({
     }));
   };
 
-  const SectionHeader = ({ children, title, section }) => (
-    <button
-      onClick={() => toggleSection(section)}
-      className="flex items-center gap-1 w-full hover:bg-gray-50 p-1 rounded select-none"
-    >
-      {expandedSections[section] ? (
-        <ChevronDown className="w-4 h-4" />
-      ) : (
-        <ChevronRight className="w-4 h-4" />
-      )}
-      <h3 className="font-medium text-sm">{title}</h3>
-    </button>
-  );
-
 
   return (
     <div
@@ -389,7 +376,7 @@ const ConfigControl = ({
               <Slider
                 max={1} step={0.1}
                 value={[config.force.linkForce]}
-                onValueChange={(v) => handleSliderChange("force", "linkForce", v)}
+                onValueChange={(v) => handleSliderChange("force", "linkForce", v[0])}
                 className="w-full"
               />
 
@@ -399,7 +386,7 @@ const ConfigControl = ({
               <Slider
                 min={10} max={200} step={5}
                 value={[config.force.linkDistance]}
-                onValueChange={(v) => handleSliderChange("force", "linkDistance", v)}
+                onValueChange={(v) => handleSliderChange("force", "linkDistance", v[0])}
                 className="w-full"
               />
             </GraphControlCollapsible>
@@ -409,7 +396,6 @@ const ConfigControl = ({
               title="Nodes"
               sectionName="nodes"
             >
-
               <Label className="block text-xs mb-2">
                 Radius: {config.node.baseRadius}
               </Label>
@@ -417,6 +403,22 @@ const ConfigControl = ({
                 min={5} max={100} step={1}
                 value={[config.node.baseRadius]}
                 onValueChange={(v) => handleSliderChange("node", "baseRadius", v[0])}
+                className="w-full"
+              />
+            </GraphControlCollapsible>
+            <GraphControlCollapsible
+              openSection={expandedSections.zoom}
+              toggleSection={toggleSection}
+              title="Zoom"
+              sectionName="zoom"
+            >
+              <Label className="block text-xs mb-2">
+                Zoom: {config.zoom.defaultScale}
+              </Label>
+              <Slider
+                min={config.zoom.min} max={config.zoom.max} step={0.1}
+                value={[config.zoom.defaultScale]}
+                onValueChange={(v) => handleSliderChange("zoom", "defaultScale", v[0])}
                 className="w-full"
               />
             </GraphControlCollapsible>

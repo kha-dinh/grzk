@@ -12,21 +12,19 @@ export class GraphVisualizer {
   zoomGroup: SvgSelection;
   nodes?: SvgSelection;
   links?: SvgSelection;
+  onScaleUpdate: (arg: number) => void;
 
-  constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph) {
+  constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph, onScaleUpdate: (arg: number) => void) {
     this.svg = svg;
     this.config = config;
     // this.data = this.processGraphData(rawData, tags);
     this.graph = graph;
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
     this.simulation = d3.forceSimulation();
+    this.onScaleUpdate = onScaleUpdate;
   }
 
-  async initialize() {
-    this.setupSimulation();
-    this.setupZoom();
-  }
-  async redraw() {
+  async render() {
     if (this.links) this.links.remove();
     if (this.nodes) this.nodes.remove();
 
@@ -40,6 +38,8 @@ export class GraphVisualizer {
   }
 
   setupSimulation() {
+    if (!this.links || !this.nodes)
+      return;
     this.simulation.nodes(this.graph.getFilteredNodes());
     this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(1).restart();
 
@@ -68,7 +68,7 @@ export class GraphVisualizer {
 
     // Update position on tick
     this.simulation.on("tick.links", () => {
-      this.links
+      this.links!
         .attr("x1", (d) => d.source.x!)
         .attr("y1", (d) => d.source.y!)
         .attr("x2", (d) => d.target.x!)
@@ -85,6 +85,7 @@ export class GraphVisualizer {
       .scaleExtent([this.config.zoom.min, this.config.zoom.max])
       .on("zoom", (event) => {
         this.zoomGroup.attr("transform", event.transform);
+        // this.onScaleUpdate(1 - event.transform.k)
       });
 
     this.svg
@@ -298,11 +299,13 @@ const D3Graph = ({
   filter,
   graph,
   showTitle,
+  onScaleUpdate,
 }: {
   config: GraphConfig;
   graph: ZkGraph;
   filter: GraphFilter;
   showTitle: boolean;
+  onScaleUpdate: any
 }) => {
   const refSvg = useRef(null);
   const [graphViz, setGraphViz] = useState<GraphVisualizer | undefined>();
@@ -310,7 +313,7 @@ const D3Graph = ({
   useEffect(() => {
     if (!graphViz) {
       const svg = d3.select(refSvg.current);
-      const graphViz = new GraphVisualizer(svg, config, graph);
+      const graphViz = new GraphVisualizer(svg, config, graph, onScaleUpdate);
       graphViz.setupZoom();
       setGraphViz(graphViz);
     }
@@ -318,18 +321,19 @@ const D3Graph = ({
 
   useEffect(() => {
     if (!graphViz) return;
-    graphViz!.config = config;
-    graphViz?.redraw();
-    graphViz?.setupSimulation();
+    graphViz.config = config;
+    graphViz.render();
+    graphViz.setupSimulation();
+    graphViz.setupZoom();
   }, [graphViz, config]);
 
   useEffect(() => {
     if (!graphViz) return;
-    graphViz?.graph.setFilter(filter);
+    graphViz.graph.setFilter(filter);
     // TODO: manage showhide state
-    graphViz?.showHideTitles(showTitle);
-    graphViz?.redraw();
-    graphViz?.setupSimulation();
+    graphViz.showHideTitles(showTitle);
+    graphViz.render();
+    graphViz.setupSimulation();
   }, [graphViz, filter]);
 
   useEffect(() => {

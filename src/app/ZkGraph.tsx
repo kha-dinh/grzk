@@ -42,6 +42,18 @@ function Graph() {
     setConfig(newConfig);
   };
 
+  const handleZoomUpdate = (scale: number) => {
+    let newConfig: GraphConfig = {
+      ...config,
+      zoom: {
+        ...config.zoom,
+        defaultScale: scale
+      }
+    }
+    setConfig(newConfig);
+  };
+
+
   const handleFilterUpdate = (newFilter: string) => {
     setFilter({ ...filter, filterString: newFilter });
   };
@@ -71,6 +83,7 @@ function Graph() {
           filter={filter}
           graph={graph}
           showTitle={showTitle}
+          onScaleUpdate={handleZoomUpdate}
         ></D3Graph>
       </> : <></>
   );
