@@ -54,7 +54,8 @@ export class GraphVisualizer {
       .force("y", d3.forceY().strength(this.config.force.centerForce))
       .force(
         "repel",
-        d3.forceManyBody().strength(this.config.force.repelForce),
+        // Scaling repel force lets notes appears in layers
+        d3.forceManyBody().strength((d) => d.radius * 0.1 * this.config.force.repelForce),
       );
 
     // Pull force between two nodes
@@ -118,7 +119,7 @@ export class GraphVisualizer {
       .join("line")
       .attr("stroke", this.config.link.stroke)
       .attr("stroke-opacity", this.config.link.opacity)
-      .attr("stroke-width", 1);
+      .attr("stroke-width", 1 + "px");
 
     return container;
   }
@@ -132,17 +133,14 @@ export class GraphVisualizer {
       .join("g");
 
     container
-      .append("g")
       .append("text")
       .attr("dy", (d) => d.radius + this.config.node.fontSize)
       .attr("text-anchor", "middle")
       .style("fill", this.config.node.textColor)
-      .style("font-size", this.config.node.fontSize)
-      // .attr("hidden", null)
+      .style("font-size", `${this.config.node.fontSize}px`)
       .text((d) => d.data.title);
 
     container
-      .append("g")
       .append("circle")
       .attr("r", (d) => d.radius)
       .attr("fill", (d) => d.fill.normal);
@@ -163,6 +161,9 @@ export class GraphVisualizer {
 
     this.setupNodeInteractions(container);
     return container;
+  }
+
+  styleNode(nodes: SvgSelection) {
   }
 
   setupNodeInteractions(container: SvgSelection) {
@@ -187,112 +188,87 @@ export class GraphVisualizer {
     // if hovering over the circle
     container.call(drag);
 
-    container
-      .on("mouseover", (event, d: ZkNode) => {
-        if (event.target.tagName !== "circle") return;
+    // Node hovering
+    container.on("mouseover", (event, d: ZkNode) => {
+      if (event.target.tagName !== "circle") return;
 
-        const connectedNodes = this.graph.getConnectedNotes(d);
-        const connectedLinks = this.graph.getConnectedEdges(d);
+      const connectedNodes = this.graph.getConnectedNotes(d);
+      const connectedLinks = this.graph.getConnectedEdges(d);
 
-        // console.log(connectedNodes);
-        // Dim all nodes initially
-        this.zoomGroup
-          .selectAll(".nodes g")
-          .style(
-            "transition",
-            `opacity ${this.config.node.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.node.dimOpacity)
-          .select("circle")
-          .style("transition", `fill ${this.config.node.transitionDuration}ms`);
+      let nodes = this.zoomGroup.selectAll(".nodes g").transition();
 
-        // Highlight connected nodes
-        this.zoomGroup
-          .selectAll(".nodes g")
-          .filter(
-            (n: any) =>
-              n.path === d.path ||
-              connectedNodes!.some((c: any) => c.path == n.path),
-          )
-          .style(
-            "transition",
-            `opacity ${this.config.node.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.node.highlightOpacity)
-          .select("circle")
-          .style("transition", `fill ${this.config.node.transitionDuration}ms`)
-          .style("fill", (n: any) => n.fill.highlight)
-          .filter(
-            (n: any) =>
-              n.path === d.path
-          )
-          .style("transition", `r ${this.config.node.transitionDuration}ms`)
-          .attr("r", (d: any) => d.radius * 1.1)
-          ;
+      // Style the the hovered node
+      const selectedNode =
+        nodes.filter(
+          (n: any) =>
+            n.path === d.path
+        );
+      selectedNode
+        .select("text")
+        .style("font-size", `${this.config.node.fontSize * 1.2}px`)
+        .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2)
+        ;
 
-        // // Show text for hovered node
-        // d3.select(event.currentTarget).select("text").attr("hidden", null);
+      selectedNode
+        .select("circle")
+        .attr("r", (d: any) => d.radius * 1.2)
 
-        // Dim all links
-        this.zoomGroup
-          .selectAll(".links line")
-          .style(
-            "transition",
-            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.link.dimOpacity)
-          .style("stroke", this.config.link.stroke)
-          .style("stroke-width", 1);
+      const connected = nodes.filter(
+        (n: any) =>
+          n.path === d.path ||
+          connectedNodes!.some((c: any) => c.path === n.path),
+      );
+      // Highlight connected nodes
+      connected
+        .style("opacity", 1)
+        .select("circle")
+        .style("fill", (n: any) => n.fill.highlight)
 
-        // Highlight connected links
-        this.zoomGroup
-          .selectAll(".links line")
-          .filter((l: any) => connectedLinks.includes(l))
-          .style(
-            "transition",
-            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.link.highlightOpacity)
-          .style("stroke", this.config.link.highlight)
-          .style("stroke-width", 2);
-      })
+      nodes.filter((n: any) =>
+        !connectedNodes.includes(n) && n.path != d.path
+      ).style("opacity", this.config.node.dimOpacity);
+      // Dim all links
+      let links = this.zoomGroup
+        .selectAll(".links line")
+        .transition()
+
+
+      // Dim non-connected links
+      links.filter((l: any) => !connectedLinks.includes(l))
+        .style("stroke-opacity", this.config.link.dimOpacity)
+        .style("stroke", this.config.link.stroke)
+        .style("stroke-width", 1 + "px");
+
+      // Highlight connected links
+      links.filter((l: any) => connectedLinks.includes(l))
+        .style("stroke-opacity", this.config.link.highlightOpacity)
+        .style("stroke", this.config.link.highlight)
+        .style("stroke-width", 2 + "px");
+    })
       .on("mouseout", (event) => {
         // Only trigger if leaving the circle
         if (event.target.tagName !== "circle") return;
         // Reset all nodes
         this.zoomGroup
           .selectAll(".nodes g")
-          .style(
-            "transition",
-            `opacity ${this.config.node.transitionDuration}ms`,
-          )
+          .transition()
           .style("opacity", this.config.node.highlightOpacity)
           .select("circle")
-          .style("transition", `fill ${this.config.node.transitionDuration}ms`)
           .style("fill", (d: any) => d.fill.normal)
-          .style("transition", `r ${this.config.node.transitionDuration}ms`)
-          .attr("r", (d) => d.radius)
-          ;
+          .attr("r", (d: any) => d.radius);
 
-        // // Hide all text
-        // this.zoomGroup
-        //   .selectAll("text")
-        //   // .style(
-        //   //   "transition",
-        //   //   `opacity ${CONFIG.node.transitionDuration}ms, font-size ${CONFIG.node.transitionDuration}ms`,
-        //   // )
-        //   .attr("hidden", true);
+        this.zoomGroup.selectAll("text")
+          .transition()
+          .attr("dy", (d: any) => (d.radius + this.config.node.fontSize))
+          .style("font-size", `${this.config.node.fontSize}px`)
 
         // Reset all links
         this.zoomGroup
           .selectAll(".links line")
-          .style(
-            "transition",
-            `opacity ${this.config.link.transitionDuration}ms, stroke ${this.config.link.transitionDuration}ms, stroke-width ${this.config.link.transitionDuration}ms`,
-          )
-          .style("opacity", this.config.link.opacity)
+          .transition()
+          .style("stroke-opacity", this.config.link.opacity)
           .style("stroke", this.config.link.stroke)
-          .style("stroke-width", 1);
+          .style("stroke-width", 1 + "px");
       })
       .on("click", this.onNodeSelect);
   }
@@ -342,9 +318,10 @@ const D3Graph = ({
   useEffect(() => {
     if (!graphViz || !filter) return;
     graphViz.graph.setFilter(filter);
-    // TODO: manage showhide state
     graphViz.render();
+    // Filter changes nodes shown => change simulation
     graphViz.setupSimulation();
+    // TODO: manage showhide state
     graphViz.showHideTitles(showTitle);
   }, [graphViz, filter]);
 
