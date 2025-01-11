@@ -9,9 +9,10 @@ import D3Graph, { GraphVisualizer } from "./D3Graph";
 import { GraphFilter, RawData, TagData, ZkGraph } from "./Graph";
 import { Option } from "@/components/ui/multi-select";
 import { tryGetStored } from "./Utils";
+import { Progress } from "@/components/ui/progress";
 
 function Graph() {
-  const [graph, setGraph] = useState<ZkGraph>();
+  const [graph, setGraph] = useState<ZkGraph | undefined>(undefined);
   const [config, setConfig] = useState(tryGetStored("config", defaultConfig));
   const [showTitle, setShowTitle] = useState(tryGetStored("showTitle", true));
   const [filter, setFilter] = useState<GraphFilter>(
@@ -48,30 +49,30 @@ function Graph() {
   const handleTagSelect = (newTags: Option[]) => {
     setFilter({ ...filter, tags: newTags });
   };
-  const handleShowTitle = (checked) => {
-    console.log(checked);
+  const handleShowTitle = (checked: boolean) => {
     setShowTitle(checked);
   };
 
   return (
-    <>
-      <ConfigControl
-        showTitle={showTitle}
-        onShowTitle={handleShowTitle}
-        config={config}
-        filter={filter}
-        onConfigUpdate={handleConfigUpdate}
-        onFilterUpdate={handleFilterUpdate}
-        tags={graph?.getTags()}
-        onTagSelect={handleTagSelect}
-      />
-      <D3Graph
-        config={config}
-        filter={filter}
-        graph={graph}
-        showTitle={showTitle}
-      ></D3Graph>
-    </>
+    graph ?
+      <>
+        <ConfigControl
+          showTitle={showTitle}
+          onShowTitle={handleShowTitle}
+          config={config}
+          filter={filter}
+          onConfigUpdate={handleConfigUpdate}
+          onFilterUpdate={handleFilterUpdate}
+          tags={graph.getTags()}
+          onTagSelect={handleTagSelect}
+        />
+        <D3Graph
+          config={config}
+          filter={filter}
+          graph={graph}
+          showTitle={showTitle}
+        ></D3Graph>
+      </> : <></>
   );
 }
 

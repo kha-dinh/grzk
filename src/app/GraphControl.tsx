@@ -26,6 +26,106 @@ import { GraphFilter, TagData } from "./Graph";
 import { tryGetStored } from "./Utils";
 import { Switch } from "@/components/ui/switch";
 
+
+
+const CollapsibleHeader = ({ children }) => (
+  <div className="flex items-center justify-between space-x-4 px-4">
+    <h4 className="text-sm font-semibold">{children}</h4>
+    <CollapsibleTrigger asChild>
+      <Button variant="ghost" size="sm" className="w-9 p-0">
+        <ChevronsUpDown className="h-4 w-4" />
+        <span className="sr-only">Toggle</span>
+      </Button>
+    </CollapsibleTrigger>
+  </div>
+);
+
+const ForceControl = ({ config, handleSliderChange }: { config: GraphConfig; handleSliderChange }) => {
+  return (
+    <Collapsible defaultOpen className="w-full space-y-2">
+      <CollapsibleTrigger className="w-full text-left font-semibold">
+        Force
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-2">
+        <div className="grid gap-2 pl-6">
+          <Label className="block text-xs mb-2">
+            Center Force: {config.force.centerForce}
+          </Label>
+          <Slider
+            max={1}
+            step={0.1}
+            value={[config.force.centerForce]}
+            onValueChange={(v) => handleSliderChange("force", "centerForce", v)}
+            className="w-full"
+          />
+
+          <Label className="block text-xs mb-2">
+            Repel Force: {config.force.repelForce}
+          </Label>
+          <Slider
+            min={-5000}
+            max={0}
+            step={50}
+            value={[config.force.repelForce]}
+            onValueChange={(v) => handleSliderChange("force", "repelForce", v)}
+            className="w-full"
+          />
+
+          <Label className="block text-xs mb-2">
+            Link Force: {config.force.linkForce}
+          </Label>
+          <Slider
+            max={1}
+            step={0.1}
+            value={[config.force.linkForce]}
+            onValueChange={(v) => handleSliderChange("force", "linkForce", v)}
+            className="w-full"
+          />
+
+          <Label className="block text-xs mb-2">
+            Link Distance: {config.force.linkDistance}
+          </Label>
+          <Slider
+            min={10}
+            max={200}
+            step={5}
+            value={[config.force.linkDistance]}
+            onValueChange={(v) => handleSliderChange("force", "linkDistance", v)}
+            className="w-full"
+          />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
+const GraphControlCollapsible = ({ children, openSection, title, sectionName, toggleSection }: { children: any }) => {
+  return <div className="py-2"><Collapsible
+    open={openSection}
+    onOpenChange={() => {
+      toggleSection(sectionName);
+    }}
+    className="w-full"
+  >
+    <CollapsibleTrigger asChild>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">{title}</h4>
+        <Button variant="ghost" size="sm" className="w-9 p-0">
+          <ChevronsUpDown className="h-4 w-4" />
+          <span className="sr-only">Toggle</span>
+        </Button>
+      </div>
+    </CollapsibleTrigger>
+    <CollapsibleContent>
+      <div className="grid pl-4">
+        {children}
+      </div>
+
+    </CollapsibleContent>
+  </Collapsible>
+  </div>
+};
+
 const ConfigControl = ({
   tags,
   config,
@@ -137,13 +237,13 @@ const ConfigControl = ({
   const handleSliderChange = (
     category: string,
     parameter: string,
-    value: string,
+    value: number,
   ) => {
     const newConfig = {
       ...config,
       [category]: {
         ...config[category],
-        [parameter]: parseFloat(value),
+        [parameter]: value,
       },
     };
     // setConfig(newConfig);
@@ -171,38 +271,7 @@ const ConfigControl = ({
     </button>
   );
 
-  const GraphControlCollapsible = ({ children, section, title }) => (
-    <Collapsible
-      open={expandedSections[section]}
-      onOpenChange={() => {
-        toggleSection(section);
-      }}
-      className="w-full space-y-2"
-    >
-      <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between space-x-4 px-4">
-          <h4 className="text-sm font-semibold">{title}</h4>
-          <Button variant="ghost" size="sm" className="w-9 p-0">
-            <ChevronsUpDown className="h-4 w-4" />
-            <span className="sr-only">Toggle</span>
-          </Button>
-        </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent>{children}</CollapsibleContent>
-    </Collapsible>
-  );
 
-  const CollapsibleHeader = ({ children }) => (
-    <div className="flex items-center justify-between space-x-4 px-4">
-      <h4 className="text-sm font-semibold">{children}</h4>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-9 p-0">
-          <ChevronsUpDown className="h-4 w-4" />
-          <span className="sr-only">Toggle</span>
-        </Button>
-      </CollapsibleTrigger>
-    </div>
-  );
   return (
     <div
       className="fixed"
@@ -246,201 +315,115 @@ const ConfigControl = ({
         </CardHeader>
 
         {!isMinimized && (
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  size="sm"
-                  className="mx-4"
-                >
-                  Reset to Defaults
-                </Button>
-                <div className="flex space-x-4 justify-between items-center px-4">
-                  <Label className="font-semibold">Show titles</Label>
-                  <Switch
-                    id="show-text"
-                    checked={showTitle}
-                    onCheckedChange={onShowTitle}
-                    // onCheckedChange={(checked) =>
-                    //   handleSliderChange("force", "showText", checked)
-                    // }
-                  />
-                </div>
-                <Collapsible
-                  open={expandedSections.force}
-                  onOpenChange={() => {
-                    toggleSection("force");
-                  }}
-                  className="w-full space-y-2"
-                >
-                  <CollapsibleHeader>Force</CollapsibleHeader>
-                  <CollapsibleContent className="space-y-2">
-                    <div className="grid gap-2 pl-6">
-                      <Label className="block text-xs mb-2">
-                        Center Force: {config.force.centerForce}
-                      </Label>
-                      <Slider
-                        max={1}
-                        step={0.1}
-                        defaultValue={[config.force.centerForce]}
-                        onValueChange={(v) =>
-                          handleSliderChange("force", "centerForce", v[0])
-                        }
-                        className="w-full"
-                      />
-                      <Label className="block text-xs mb-2">
-                        Repel Force: {config.force.repelForce}
-                      </Label>
-                      <Slider
-                        min={-5000}
-                        max={0}
-                        step={50}
-                        defaultValue={[config.force.repelForce]}
-                        onValueChange={(v) =>
-                          handleSliderChange("force", "repelForce", v[0])
-                        }
-                        className="w-full"
-                      />
-                      <Label className="block text-xs mb-2">
-                        Link Force: {config.force.linkForce}
-                      </Label>
-                      <Slider
-                        max={1}
-                        step={0.1}
-                        defaultValue={[config.force.linkForce]}
-                        onValueChange={(v) =>
-                          handleSliderChange("force", "linkForce", v[0])
-                        }
-                        className="w-full"
-                      />
-                      <Label className="block text-xs mb-2">
-                        Link Distance: {config.force.linkDistance}
-                      </Label>
-                      <Slider
-                        min={10}
-                        max={200}
-                        step={5}
-                        defaultValue={[config.force.linkDistance]}
-                        onValueChange={(e) =>
-                          handleSliderChange("force", "linkDistance", e[0])
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-                <Collapsible
-                  open={expandedSections.filter}
-                  onOpenChange={() => {
-                    toggleSection("filter");
-                  }}
-                  className="w-full space-y-2"
-                >
-                  <CollapsibleHeader>Filter</CollapsibleHeader>
-                  <CollapsibleContent>
-                    <div className="grid gap-2 pl-6">
-                      <Input
-                        type="text"
-                        placeholder="Title"
-                        value={filter?.filterString}
-                        onChange={(e) => onFilterUpdate(e.target.value)}
-                        className="w-full h-8"
-                      />
-                      <MultipleSelector
-                        options={processedTags}
-                        onChange={onTagSelect}
-                        placeholder="Select tag(s)"
-                        value={filter?.tags}
-                      ></MultipleSelector>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-
-              <Collapsible
-                open={expandedSections.nodes}
-                onOpenChange={() => {
-                  toggleSection("nodes");
-                }}
-                className="w-full space-y-2"
+          <CardContent className="p-4 pb-8">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                size="sm"
               >
-                <CollapsibleHeader>Nodes</CollapsibleHeader>
-              </Collapsible>
-              <div className="space-y-2">
-                <SectionHeader title="Nodes" section="nodes" />
-                {expandedSections.nodes && (
-                  <div className="grid gap-2 pl-6">
-                    <div>
-                      <Label className="block text-xs mb-1">
-                        Base Radius: {config.node.baseRadius}
-                      </Label>
-                      <Slider
-                        min={2}
-                        max={20}
-                        step={1}
-                        defaultValue={[config.node.baseRadius]}
-                        onValueChange={(e) =>
-                          handleSliderChange("node", "baseRadius", e[0])
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">
-                        Radius Multiplier: {config.node.radiusMultiplier}
-                      </label>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="2"
-                        step="0.1"
-                        value={config.node.radiusMultiplier}
-                        onChange={(e) =>
-                          handleSliderChange(
-                            "node",
-                            "radiusMultiplier",
-                            e.target.value,
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <SectionHeader title="Zoom" section="zoom" />
-                {expandedSections.zoom && (
-                  <div className="pl-6">
-                    <label className="block text-xs mb-1">
-                      Default Scale: {config.zoom.defaultScale}
-                    </label>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="2"
-                      step="0.1"
-                      value={config.zoom.defaultScale}
-                      onChange={(e) =>
-                        handleSliderChange(
-                          "zoom",
-                          "defaultScale",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full"
-                    />
-                  </div>
-                )}
-              </div>
+                Reset default
+              </Button>
             </div>
+            <div className="space-y-2 flex space-x-4 justify-between items-center">
+              <Label className="font-semibold text-sm">Show Title</Label>
+              <Switch
+                id="show-text"
+                checked={showTitle}
+                onCheckedChange={onShowTitle}
+              />
+            </div>
+
+            <GraphControlCollapsible
+              openSection={expandedSections.filter}
+              toggleSection={toggleSection}
+              sectionName="filter"
+              title="Filter" >
+              <div className="grid gap-2">
+                <Input
+                  type="text"
+                  placeholder="Title"
+                  value={filter?.filterString}
+                  onChange={(e) => onFilterUpdate(e.target.value)}
+                  className="w-full h-8 text-sm"
+                />
+                <MultipleSelector
+                  options={processedTags}
+                  onChange={onTagSelect}
+                  placeholder="Select tag(s)"
+                  value={filter?.tags}
+                  className="w-full h-fit text-sm"
+                ></MultipleSelector>
+              </div>
+            </GraphControlCollapsible>
+
+            <GraphControlCollapsible
+              openSection={expandedSections.force}
+              toggleSection={toggleSection}
+              title="Force"
+              sectionName="force"
+            >
+              <Label className="block text-xs mb-2 mt-2">
+                Center Force: {config.force.centerForce}
+              </Label>
+              <Slider
+                max={1} step={0.1}
+                value={[config.force.centerForce]}
+                onValueChange={(v) => handleSliderChange("force", "centerForce", v)}
+                className="w-full"
+              />
+
+              <Label className="block text-xs mb-2 mt-2">
+                Repel Force: {config.force.repelForce}
+              </Label>
+              <Slider
+                min={-5000} max={0} step={50}
+                value={[config.force.repelForce]}
+                onValueChange={(v) => handleSliderChange("force", "repelForce", v)}
+                className="w-full"
+              />
+
+              <Label className="block text-xs mb-2">
+                Link Force: {config.force.linkForce}
+              </Label>
+              <Slider
+                max={1} step={0.1}
+                value={[config.force.linkForce]}
+                onValueChange={(v) => handleSliderChange("force", "linkForce", v)}
+                className="w-full"
+              />
+
+              <Label className="block text-xs mb-2">
+                Link Distance: {config.force.linkDistance}
+              </Label>
+              <Slider
+                min={10} max={200} step={5}
+                value={[config.force.linkDistance]}
+                onValueChange={(v) => handleSliderChange("force", "linkDistance", v)}
+                className="w-full"
+              />
+            </GraphControlCollapsible>
+            <GraphControlCollapsible
+              openSection={expandedSections.nodes}
+              toggleSection={toggleSection}
+              title="Nodes"
+              sectionName="nodes"
+            >
+
+              <Label className="block text-xs mb-2">
+                Radius: {config.node.baseRadius}
+              </Label>
+              <Slider
+                min={5} max={100} step={1}
+                value={[config.node.baseRadius]}
+                onValueChange={(v) => handleSliderChange("node", "baseRadius", v[0])}
+                className="w-full"
+              />
+            </GraphControlCollapsible>
           </CardContent>
         )}
       </Card>
-    </div>
+    </div >
   );
 };
 

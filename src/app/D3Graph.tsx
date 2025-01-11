@@ -10,8 +10,8 @@ export class GraphVisualizer {
   graph: ZkGraph;
   simulation: d3.Simulation<ZkNode, ZkEdge>;
   zoomGroup: SvgSelection;
-  nodes: SvgSelection;
-  links: SvgSelection;
+  nodes?: SvgSelection;
+  links?: SvgSelection;
 
   constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph) {
     this.svg = svg;
@@ -20,9 +20,6 @@ export class GraphVisualizer {
     this.graph = graph;
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
     this.simulation = d3.forceSimulation();
-
-    this.links = this.setupLinks(this.graph.getAllLinks());
-    this.nodes = this.createNodeGroup(this.graph.getAllNodes());
   }
 
   async initialize() {
@@ -32,8 +29,10 @@ export class GraphVisualizer {
   async redraw() {
     if (this.links) this.links.remove();
     if (this.nodes) this.nodes.remove();
-    const nodes = this.graph.getAllNodes();
-    const links = this.graph.getAllLinks();
+
+    this.graph.applyFilters();
+    const nodes = this.graph.getFilteredNodes();
+    const links = this.graph.getFilteredLinks();
 
     // Links should be behind the nodes
     this.links = this.setupLinks(links);
@@ -41,7 +40,7 @@ export class GraphVisualizer {
   }
 
   setupSimulation() {
-    this.simulation.nodes(this.graph.getAllNodes());
+    this.simulation.nodes(this.graph.getFilteredNodes());
     this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(1).restart();
 
     this.simulation
@@ -300,32 +299,32 @@ const D3Graph = ({
   graph,
   showTitle,
 }: {
-  config?: GraphConfig;
-  graph?: ZkGraph;
-  filter?: GraphFilter;
+  config: GraphConfig;
+  graph: ZkGraph;
+  filter: GraphFilter;
   showTitle: boolean;
 }) => {
   const refSvg = useRef(null);
-  const [graphViz, setGraphViz] = useState<GraphVisualizer>();
+  const [graphViz, setGraphViz] = useState<GraphVisualizer | undefined>();
 
   useEffect(() => {
-    if (!graph || !config) return;
     if (!graphViz) {
       const svg = d3.select(refSvg.current);
       const graphViz = new GraphVisualizer(svg, config, graph);
-      graphViz.initialize();
-      graphViz?.showHideTitles(showTitle);
+      graphViz.setupZoom();
       setGraphViz(graphViz);
     }
   }, [graph]);
 
   useEffect(() => {
-    if (!graphViz || !config) return;
+    if (!graphViz) return;
     graphViz!.config = config;
+    graphViz?.redraw();
     graphViz?.setupSimulation();
   }, [graphViz, config]);
+
   useEffect(() => {
-    if (!graphViz || !filter) return;
+    if (!graphViz) return;
     graphViz?.graph.setFilter(filter);
     // TODO: manage showhide state
     graphViz?.showHideTitles(showTitle);
@@ -345,7 +344,7 @@ const D3Graph = ({
           height: "100vh",
           width: "100%",
           position: "fixed",
-          backgroundColor: config?.background.color,
+          backgroundColor: config.background.color,
           top: 0,
           left: 0,
         }}

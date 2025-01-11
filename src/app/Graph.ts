@@ -262,33 +262,16 @@ class ZkGraph {
     ];
   }
 
-  // setTagFilter(newFilter?: Option[]) {
-  //   if (!newFilter || newFilter.length == 0) {
-  //     this.tagFilter = undefined;
-  //   } else {
-  //     this.tagFilter = newFilter;
-  //   }
-  // }
   setFilter(newFilter: GraphFilter) {
-    // Object.assign(this.filter, newFilter);
     if (newFilter?.filterString === "") this.filter.filterString = undefined;
     else this.filter.filterString = newFilter.filterString;
 
     if (newFilter?.tags?.length == 0) this.filter.tags = undefined;
     else this.filter.tags = newFilter?.tags;
-    // this.setFilterString(newFilter.filterString);
-    // this.setTagFilter(newFilter.tags);
   }
-  // setFilterString(newFilter: string) {
-  //   if (newFilter === "") {
-  //     this.filterString = undefined;
-  //   } else {
-  //     this.filterString = newFilter;
-  //   }
-  // }
 
-  applyFilters(nodes: ZkNode[]) {
-    let filteredNodes = nodes;
+  applyFilters() {
+    let filteredNodes = this.getAllNodes();
     if (this.filter.filterString) {
       filteredNodes = [
         ...this.filter.fuzzySearch(this.filter.filterString).map((n) => n.item),
@@ -308,21 +291,33 @@ class ZkGraph {
     this._filteredNodes = filteredNodes;
     return filteredNodes;
   }
-  getAllNodes() {
-    let selectedNodes = [...this.nodes.values()];
-    return this.applyFilters(selectedNodes);
-  }
+  getFilteredNodes() {
+    if (!this._filteredNodes)
+      this.applyFilters()
 
-  getAllLinks() {
+    return this._filteredNodes!;
+  }
+  getFilteredLinks() {
+    if (!this._filteredNodes)
+      this.applyFilters()
+
     let selectedEdges = this.edges
       .values()
       .filter(
         (e) =>
-          this._filteredNodes?.includes(e.source) &&
-          this._filteredNodes?.includes(e.target),
+          this._filteredNodes!.includes(e.source) &&
+          this._filteredNodes!.includes(e.target),
       );
     let edges = [...selectedEdges];
     return edges;
+  }
+
+  getAllNodes() {
+    return [...this.nodes.values()];
+  }
+
+  getAllLinks() {
+    return [...this.edges.values()]
   }
 
   getNotes() {
