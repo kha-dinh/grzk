@@ -1,5 +1,6 @@
-import createFuzzySearch, { FuzzySearcher } from "@nozbe/microfuzz";
+import createFuzzySearch from "@nozbe/microfuzz";
 import { FillConfig, GraphConfig, NodeConfig } from "./graphConfig";
+
 import * as d3 from "d3";
 import { Option } from "@/components/ui/multi-select";
 

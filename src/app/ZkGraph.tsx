@@ -1,6 +1,5 @@
 "use client";
 
-import { useFuzzySearchList, Highlight } from "@nozbe/microfuzz/react";
 import React, { useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
@@ -55,8 +54,7 @@ function Graph() {
     setConfig(newConfig);
   };
 
-  const handleNodeSelect = (event: any) => {
-    const node: ZkNode = event.srcElement.__data__;
+  const handleNodeSelect = (node: ZkNode) => {
     switch (node.type) {
       case ZkNodeType.NOTE:
         let file = node.data.absPath
@@ -77,9 +75,9 @@ function Graph() {
 
   }
 
-  const handleFilterUpdate = (newFilter) => {
-    graph!.filter = newFilter;
+  const handleFilterUpdate = (newFilter: GraphFilter) => {
     setFilter(newFilter);
+    graph!.filter = newFilter;
   };
 
   return (

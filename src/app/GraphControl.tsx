@@ -7,11 +7,9 @@ import {
   GripVertical,
   Minimize2,
   Maximize2,
-  ChevronDown,
-  ChevronRight,
   ChevronsUpDown,
 } from "lucide-react";
-import { defaultConfig, FillConfig, GraphConfig } from "./graphConfig";
+import { defaultConfig, GraphConfig } from "./graphConfig";
 import MultipleSelector, { Option } from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,79 +23,6 @@ import { Button } from "@/components/ui/button";
 import { GraphFilter, TagData } from "./Graph";
 import { tryGetStored } from "./Utils";
 import { Switch } from "@/components/ui/switch";
-
-
-
-const CollapsibleHeader = ({ children }) => (
-  <div className="flex items-center justify-between space-x-4 px-4">
-    <h4 className="text-sm font-semibold">{children}</h4>
-    <CollapsibleTrigger asChild>
-      <Button variant="ghost" size="sm" className="w-9 p-0">
-        <ChevronsUpDown className="h-4 w-4" />
-        <span className="sr-only">Toggle</span>
-      </Button>
-    </CollapsibleTrigger>
-  </div>
-);
-
-const ForceControl = ({ config, handleSliderChange }: { config: GraphConfig; handleSliderChange }) => {
-  return (
-    <Collapsible defaultOpen className="w-full space-y-2">
-      <CollapsibleTrigger className="w-full text-left font-semibold">
-        Force
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-2">
-        <div className="grid gap-2 pl-6">
-          <Label className="block text-xs mb-2">
-            Center Force: {config.force.centerForce}
-          </Label>
-          <Slider
-            max={1}
-            step={0.1}
-            value={[config.force.centerForce]}
-            onValueChange={(v) => handleSliderChange("force", "centerForce", v)}
-            className="w-full"
-          />
-
-          <Label className="block text-xs mb-2">
-            Repel Force: {config.force.repelForce}
-          </Label>
-          <Slider
-            min={-5000}
-            max={0}
-            step={50}
-            value={[config.force.repelForce]}
-            onValueChange={(v) => handleSliderChange("force", "repelForce", v)}
-            className="w-full"
-          />
-
-          <Label className="block text-xs mb-2">
-            Link Force: {config.force.linkForce}
-          </Label>
-          <Slider
-            max={1}
-            step={0.1}
-            value={[config.force.linkForce]}
-            onValueChange={(v) => handleSliderChange("force", "linkForce", v)}
-            className="w-full"
-          />
-
-          <Label className="block text-xs mb-2">
-            Link Distance: {config.force.linkDistance}
-          </Label>
-          <Slider
-            min={10}
-            max={200}
-            step={5}
-            value={[config.force.linkDistance]}
-            onValueChange={(v) => handleSliderChange("force", "linkDistance", v)}
-            className="w-full"
-          />
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-};
 
 const GraphControlCollapsible = ({ children, openSection, title, sectionName, toggleSection }:
   { children: any, openSection: boolean, title: string, sectionName: string, toggleSection: (arg: string) => void }) => {
@@ -375,7 +300,7 @@ const ConfigControl = ({
               <Slider
                 max={1} step={0.1}
                 value={[config.force.centerForce]}
-                onValueChange={(v) => handleSliderChange("force", "centerForce", v)}
+                onValueChange={(v) => handleSliderChange("force", "centerForce", v[0])}
                 className="w-full"
               />
 
@@ -385,7 +310,7 @@ const ConfigControl = ({
               <Slider
                 min={-5000} max={0} step={50}
                 value={[config.force.repelForce]}
-                onValueChange={(v) => handleSliderChange("force", "repelForce", v)}
+                onValueChange={(v) => handleSliderChange("force", "repelForce", v[0])}
                 className="w-full"
               />
 

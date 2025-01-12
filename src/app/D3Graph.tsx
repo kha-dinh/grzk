@@ -290,7 +290,7 @@ export class GraphVisualizer {
         .style("stroke-width", 1 + "px");
     }
 
-    const handleClick = (e: any, d: ZkNode) => {
+    const handleClick = (e: PointerEvent, d: ZkNode) => {
       // Reset other selection
       // const connectedLinks = this.graph.getConnectedEdges(d);
 
@@ -301,22 +301,15 @@ export class GraphVisualizer {
       this.graph.applyFilters();
       this.render();
       this.setupSimulation();
-
-      // const connected = nodes.filter(
-      //   (n: any) =>
-      //     n.path === d.path ||
-      //     connectedNodes!.some((c: any) => c.path === n.path),
-      // );
-      // // Highlight connected nodes
-      // connected
-      //   .style("opacity", 1)
-      //   .select("circle")
-      //   .style("fill", (n: any) => n.fill.highlight)
-      // this.onNodeSelect(e)
+    }
+    const handleRightClick = (e: PointerEvent, d: ZkNode) => {
+      e.preventDefault();
+      this.onNodeSelect(d);
     }
 
     // Node hovering
     container.on("mouseover", mouseOver)
+      .on("contextmenu", handleRightClick)
       .on("click", handleClick)
       .on("mouseout", mouseOut);
   }
