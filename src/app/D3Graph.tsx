@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { ZkNode, ZkGraph, ZkEdge, RawData, GraphFilter } from "./Graph";
+import { ZkNode, ZkGraph, ZkEdge, GraphFilter } from "./Graph";
 import { GraphConfig } from "./graphConfig";
 import { useEffect, useRef, useState } from "react";
 
@@ -47,15 +47,12 @@ export class GraphVisualizer {
       return;
     this.graph.applyFilters();
     this.simulation.nodes(this.graph.getFilteredNodes());
-    this.simulation.alphaDecay(0.05).velocityDecay(0.2).alpha(1).restart();
+    this.simulation.alphaDecay(0.2).velocityDecay(0.2).alpha(2).restart();
 
     this.simulation
       .force("x", d3.forceX().strength(this.config.force.centerForce))
       .force("y", d3.forceY().strength(this.config.force.centerForce))
-      .force(
-        "repel",
-        // Scaling repel force lets notes appears in layers
-        d3.forceManyBody().strength((d) => d.radius * 0.1 * this.config.force.repelForce),
+      .force("repel", d3.forceManyBody().strength(this.config.force.repelForce),
       );
 
     // Pull force between two nodes
@@ -145,6 +142,25 @@ export class GraphVisualizer {
       .attr("r", (d) => d.radius)
       .attr("fill", (d) => d.fill.normal);
 
+    const selectedNode =
+      this.zoomGroup
+        .selectAll(".nodes g")
+        .filter(
+          (n: any) =>
+            n == this.graph.filter.selectedNode
+        );
+    selectedNode
+      .select("text")
+      .style("font-size", `${this.config.node.fontSize * 1.2}px`)
+      .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2)
+      ;
+
+    selectedNode
+      .select("circle")
+      .attr("r", (d: any) => d.radius * 1.2)
+      .attr("fill", (d: any) => d.fill.highlight);
+
+
     // Add labels to nodes with updated positioning and color
 
     // Add tooltips
@@ -161,9 +177,6 @@ export class GraphVisualizer {
 
     this.setupNodeInteractions(container);
     return container;
-  }
-
-  styleNode(nodes: SvgSelection) {
   }
 
   setupNodeInteractions(container: SvgSelection) {
@@ -188,8 +201,8 @@ export class GraphVisualizer {
     // if hovering over the circle
     container.call(drag);
 
-    // Node hovering
-    container.on("mouseover", (event, d: ZkNode) => {
+
+    const mouseOver = (event: any, d: ZkNode) => {
       if (event.target.tagName !== "circle") return;
 
       const connectedNodes = this.graph.getConnectedNotes(d);
@@ -213,17 +226,16 @@ export class GraphVisualizer {
         .select("circle")
         .attr("r", (d: any) => d.radius * 1.2)
 
-      const connected = nodes.filter(
+      nodes.filter(
         (n: any) =>
           n.path === d.path ||
           connectedNodes!.some((c: any) => c.path === n.path),
-      );
-      // Highlight connected nodes
-      connected
+      )
         .style("opacity", 1)
         .select("circle")
         .style("fill", (n: any) => n.fill.highlight)
 
+      // Dim remaining nodes
       nodes.filter((n: any) =>
         !connectedNodes.includes(n) && n.path != d.path
       ).style("opacity", this.config.node.dimOpacity);
@@ -244,33 +256,72 @@ export class GraphVisualizer {
         .style("stroke-opacity", this.config.link.highlightOpacity)
         .style("stroke", this.config.link.highlight)
         .style("stroke-width", 2 + "px");
-    })
-      .on("mouseout", (event) => {
-        // Only trigger if leaving the circle
-        if (event.target.tagName !== "circle") return;
-        // Reset all nodes
+    }
+
+    const mouseOut = (event: any) => {
+      // Only trigger if leaving the circle
+      if (event.target.tagName !== "circle") return;
+
+      let nonSelected =
         this.zoomGroup
           .selectAll(".nodes g")
-          .transition()
-          .style("opacity", this.config.node.highlightOpacity)
-          .select("circle")
-          .style("fill", (d: any) => d.fill.normal)
-          .attr("r", (d: any) => d.radius);
+          .filter((d) => d != this.graph.filter.selectedNode).transition()
+      nonSelected
+        .style("opacity", 1)
+        .select("circle")
+        .style("fill", (d: any) => d.fill.normal)
+        .attr("r", (d: any) => d.radius);
 
-        this.zoomGroup.selectAll("text")
-          .transition()
-          .attr("dy", (d: any) => (d.radius + this.config.node.fontSize))
-          .style("font-size", `${this.config.node.fontSize}px`)
+      nonSelected
+        .select("text")
+        .attr("dy", (d: any) => (d.radius + this.config.node.fontSize))
+        .style("font-size", `${this.config.node.fontSize}px`)
 
-        // Reset all links
-        this.zoomGroup
-          .selectAll(".links line")
-          .transition()
-          .style("stroke-opacity", this.config.link.opacity)
-          .style("stroke", this.config.link.stroke)
-          .style("stroke-width", 1 + "px");
-      })
-      .on("click", this.onNodeSelect);
+      // Reset all links
+      this.zoomGroup
+        .selectAll(".links line")
+        .transition()
+        .style("stroke-opacity", this.config.link.opacity)
+        .style("stroke", this.config.link.stroke)
+        .style("stroke-width", 1 + "px");
+    }
+
+    const handleClick = (e: any, d: ZkNode) => {
+      // Reset other selection
+
+
+      // const connectedLinks = this.graph.getConnectedEdges(d);
+
+      // connectedNodes.forEach((n) => {
+      //   if (n) n.active = true;
+      // })
+      if (this.graph.filter.selectedNode == d) {
+        this.graph.filter.selectedNode = undefined;
+      }
+      else {
+        this.graph.filter.selectedNode = d;
+      }
+      this.graph.applyFilters();
+      this.render();
+      this.setupSimulation();
+
+      // const connected = nodes.filter(
+      //   (n: any) =>
+      //     n.path === d.path ||
+      //     connectedNodes!.some((c: any) => c.path === n.path),
+      // );
+      // // Highlight connected nodes
+      // connected
+      //   .style("opacity", 1)
+      //   .select("circle")
+      //   .style("fill", (n: any) => n.fill.highlight)
+      // this.onNodeSelect(e)
+    }
+
+    // Node hovering
+    container.on("mouseover", mouseOver)
+      .on("click", handleClick)
+      .on("mouseout", mouseOut);
   }
 
 }
@@ -287,7 +338,8 @@ const D3Graph = ({
   graph: ZkGraph;
   filter: GraphFilter;
   showTitle: boolean;
-  onScaleUpdate: any
+  onScaleUpdate: (s: any) => void;
+  onNodeSelect: (e: any) => void;
 }) => {
   const refSvg = useRef(null);
   const [graphViz, setGraphViz] = useState<GraphVisualizer | undefined>();

@@ -35,7 +35,6 @@ class ZkEdge implements d3.SimulationLinkDatum<ZkNode> {
   source: ZkNode;
   // targetId: number = 0
   target: ZkNode;
-
   type: ZkEdgeType;
 
   constructor(
@@ -53,6 +52,7 @@ class ZkEdge implements d3.SimulationLinkDatum<ZkNode> {
 }
 
 export type GraphFilter = {
+  selectedNode?: ZkNode;
   filterString?: string;
   tags?: Option[];
   fuzzySearch: FuzzySearcher<ZkNode>;
@@ -93,6 +93,7 @@ class ZkNode implements d3.SimulationNodeDatum {
   // Numbers of in/out edges
   inEdges: number = 0;
   outEdges: number = 0;
+  selected: boolean = false;
 
   config: NodeConfig;
 
@@ -249,6 +250,7 @@ class ZkGraph {
       },
     );
     this.filter = {
+      selected: false,
       fuzzySearch: searcher,
     };
   }
@@ -274,11 +276,11 @@ class ZkGraph {
 
   applyFilters() {
     let filteredNodes = this.getAllNodes();
-    if (this.filter.filterString) {
-      filteredNodes = [
-        ...this.filter.fuzzySearch(this.filter.filterString).map((n) => n.item),
-        ...this.nodes.values().filter((n) => n.type == ZkNodeType.TAG),
-      ];
+    if (this.filter.selectedNode) {
+      let connectedNodes = this.getConnectedNotes(this.filter.selectedNode);
+      if (connectedNodes != undefined) {
+        filteredNodes = connectedNodes;
+      }
     }
     if (this.filter.tags) {
       filteredNodes = filteredNodes.filter((node) => {
@@ -288,6 +290,19 @@ class ZkGraph {
           if (node.type == ZkNodeType.TAG) return node.path === tag.value;
         });
       });
+    }
+
+    if (this.filter.filterString) {
+      const searcher = createFuzzySearch(
+        filteredNodes.filter((n) => n.type != ZkNodeType.TAG),
+        {
+          getText: (item) => [item.data.title],
+        },
+      );
+      filteredNodes = [
+        ...searcher(this.filter.filterString).map((n) => n.item),
+        ...filteredNodes.filter((n) => n.type === ZkNodeType.TAG),
+      ];
     }
 
     this._filteredNodes = filteredNodes;
@@ -329,21 +344,20 @@ class ZkGraph {
   }
 
   getConnectedNotes(node: ZkNode) {
-    return [
-      ...new Set(
-        this.edges
-          .values()
-          .map((edge) => {
-            if (edge.source == node) {
-              return edge.target;
-            }
-            if (edge.target == node) {
-              return edge.source;
-            }
-          })
-          .filter((n) => n),
-      ),
-    ];
+    let connectedSet = new Set<ZkNode>()
+    this.edges
+      .values()
+      .forEach((edge) => {
+        if (edge.source == node) {
+          connectedSet.add(edge.target)
+        }
+        if (edge.target == node) {
+          connectedSet.add(edge.source)
+        }
+      })
+    connectedSet.add(node)
+
+    return [...connectedSet];
   }
 
   getConnectedEdges(node: ZkNode) {
