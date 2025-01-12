@@ -47,7 +47,9 @@ export class GraphVisualizer {
       return;
     this.graph.applyFilters();
     this.simulation.nodes(this.graph.getFilteredNodes());
-    this.simulation.alphaDecay(0.2).velocityDecay(0.2).alpha(2).restart();
+    this.simulation
+      .alphaDecay(0.1).velocityDecay(0.15)
+      .restart();
 
     this.simulation
       .force("x", d3.forceX().strength(this.config.force.centerForce))

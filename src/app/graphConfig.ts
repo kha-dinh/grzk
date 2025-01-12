@@ -88,7 +88,7 @@ export const defaultConfig: GraphConfig = {
   },
   force: {
     centerForce: 0.1, // How strongly nodes are pulled to the center (0-1)
-    repelForce: -1200, // How strongly nodes push away from each other
+    repelForce: -2000, // How strongly nodes push away from each other
     linkForce: 0.2, // How strongly connected nodes pull together (0-1)
     linkDistance: 100, // Base distance between connected nodes
   },
