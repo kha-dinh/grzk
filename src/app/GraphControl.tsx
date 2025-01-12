@@ -133,7 +133,6 @@ const ConfigControl = ({
   filter,
   onConfigUpdate,
   onFilterUpdate,
-  onTagSelect,
   onShowTitle,
   showTitle,
 }: {
@@ -144,7 +143,6 @@ const ConfigControl = ({
   onFilterUpdate: any;
   onShowTitle: any;
   tags?: Map<string, TagData>;
-  onTagSelect: any;
 }) => {
   const [position, setPosition] = useState(
     tryGetStored("configPosition", { x: 20, y: 20 }),
@@ -258,6 +256,19 @@ const ConfigControl = ({
     }));
   };
 
+  const onFilterStringUpdate = (newFilter: string) => {
+    onFilterUpdate({ ...filter, filterString: newFilter });
+  }
+
+  const onShowTagsUpdate = (newVal: boolean) => {
+    onFilterUpdate({ ...filter, showTags: newVal, });
+  }
+
+  const handleTagSelect = (newTags: Option[]) => {
+    let newSet = [...new Set([...newTags.map((t) => JSON.stringify(t))])
+      .values().map((v) => JSON.parse(v))]
+    onFilterUpdate({ ...filter, tags: newSet });
+  };
 
   return (
     <div
@@ -313,11 +324,19 @@ const ConfigControl = ({
               </Button>
             </div>
             <div className="space-y-2 flex space-x-4 justify-between items-center">
-              <Label className="font-semibold text-sm">Show Title</Label>
+              <Label className="font-semibold text-sm">Show titles</Label>
               <Switch
                 id="show-text"
                 checked={showTitle}
                 onCheckedChange={onShowTitle}
+              />
+            </div>
+            <div className="space-y-2 flex space-x-4 justify-between items-center">
+              <Label className="font-semibold text-sm">Show tags</Label>
+              <Switch
+                id="show-text"
+                checked={filter.showTags}
+                onCheckedChange={onShowTagsUpdate}
               />
             </div>
 
@@ -330,15 +349,15 @@ const ConfigControl = ({
                 <Input
                   type="text"
                   placeholder="Title"
-                  value={filter?.filterString}
-                  onChange={(e) => onFilterUpdate(e.target.value)}
+                  value={filter.filterString}
+                  onChange={(e) => onFilterStringUpdate(e.target.value)}
                   className="w-full h-8 text-sm"
                 />
                 <MultipleSelector
                   options={processedTags}
-                  onChange={onTagSelect}
+                  onChange={handleTagSelect}
                   placeholder="Select tag(s)"
-                  value={filter?.tags}
+                  value={filter.tags}
                   className="w-full h-fit text-sm"
                 ></MultipleSelector>
               </div>

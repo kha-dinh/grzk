@@ -53,9 +53,9 @@ class ZkEdge implements d3.SimulationLinkDatum<ZkNode> {
 
 export type GraphFilter = {
   selectedNode?: ZkNode;
-  filterString?: string;
-  tags?: Option[];
-  fuzzySearch: FuzzySearcher<ZkNode>;
+  filterString: string;
+  tags: Option[];
+  showTags: boolean;
 };
 
 // {
@@ -95,6 +95,7 @@ class ZkNode implements d3.SimulationNodeDatum {
   outEdges: number = 0;
   selected: boolean = false;
 
+  active: boolean = false;
   config: NodeConfig;
 
   radius: number;
@@ -243,18 +244,21 @@ class ZkGraph {
       });
     });
 
-    const searcher = createFuzzySearch(
-      [...this.nodes.values()].filter((n) => n.type != ZkNodeType.TAG),
-      {
-        getText: (item) => [item.data.title],
-      },
-    );
     this.filter = {
-      selected: false,
-      fuzzySearch: searcher,
+      tags: [],
+      filterString: "",
+      showTags: true,
     };
   }
 
+  toggleSelectNode(node: ZkNode) {
+    if (this.filter.selectedNode == node) {
+      this.filter.selectedNode = undefined;
+    }
+    else {
+      this.filter.selectedNode = node;
+    }
+  }
   getTags() {
     return this.tags;
   }
@@ -265,24 +269,24 @@ class ZkGraph {
   }
 
   setFilter(newFilter: GraphFilter) {
-    if (newFilter?.filterString === "") this.filter.filterString = undefined;
-    else this.filter.filterString = newFilter.filterString;
-
-    if (newFilter?.tags?.length == 0) this.filter.tags = undefined;
-    else this.filter.tags = newFilter?.tags;
+    this.filter = newFilter
+    this.applyFilters();
     // this.setFilterString(newFilter.filterString);
     // this.setTagFilter(newFilter.tags);
   }
 
   applyFilters() {
     let filteredNodes = this.getAllNodes();
+
     if (this.filter.selectedNode) {
       let connectedNodes = this.getConnectedNotes(this.filter.selectedNode);
       if (connectedNodes != undefined) {
         filteredNodes = connectedNodes;
       }
     }
-    if (this.filter.tags) {
+
+
+    if (this.filter.tags.length != 0) {
       filteredNodes = filteredNodes.filter((node) => {
         return this.filter.tags!.some((tag) => {
           if (node.type == ZkNodeType.NOTE)
@@ -292,7 +296,7 @@ class ZkGraph {
       });
     }
 
-    if (this.filter.filterString) {
+    if (this.filter.filterString != "") {
       const searcher = createFuzzySearch(
         filteredNodes.filter((n) => n.type != ZkNodeType.TAG),
         {
@@ -303,6 +307,10 @@ class ZkGraph {
         ...searcher(this.filter.filterString).map((n) => n.item),
         ...filteredNodes.filter((n) => n.type === ZkNodeType.TAG),
       ];
+    }
+
+    if (!this.filter.showTags) {
+      filteredNodes = filteredNodes.filter((n) => n.type !== ZkNodeType.TAG);
     }
 
     this._filteredNodes = filteredNodes;

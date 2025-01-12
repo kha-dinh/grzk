@@ -1,15 +1,13 @@
 "use client";
 
 import { useFuzzySearchList, Highlight } from "@nozbe/microfuzz/react";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import * as d3 from "d3";
 import ConfigControl from "./GraphControl";
 import { GraphConfig, defaultConfig } from "./graphConfig";
-import D3Graph, { GraphVisualizer } from "./D3Graph";
-import { GraphFilter, RawData, TagData, ZkGraph, ZkNode, ZkNodeType } from "./Graph";
-import { Option } from "@/components/ui/multi-select";
+import D3Graph from "./D3Graph";
+import { GraphFilter, RawData, ZkGraph, ZkNode, ZkNodeType } from "./Graph";
 import { tryGetStored } from "./Utils";
-import { Progress } from "@/components/ui/progress";
 
 function Graph() {
   const [graph, setGraph] = useState<ZkGraph | undefined>(undefined);
@@ -33,7 +31,11 @@ function Graph() {
       );
 
       const graph = new ZkGraph(fetchData!, config);
+      if (filter) {
+        graph.filter = filter;
+      }
       setGraph(graph);
+
     }
     fetchData();
   }, []);
@@ -67,22 +69,17 @@ function Graph() {
         }
         break;
       case ZkNodeType.TAG:
-        let newTags = [{ value: node.path, label: node.path }]
-        handleTagSelect(newTags);
+        // let newTags = [{ value: node.path, label: node.path }]
+        // handleTagSelect(newTags);
         break;
 
     }
 
   }
 
-  const handleFilterUpdate = (newFilter: string) => {
-    setFilter({ ...filter, filterString: newFilter });
-  };
-
-  const handleTagSelect = (newTags: Option[]) => {
-    let newSet = [...new Set([...newTags.map((t) => JSON.stringify(t))])
-      .values().map((v) => JSON.parse(v))]
-    setFilter({ ...filter, tags: newSet });
+  const handleFilterUpdate = (newFilter) => {
+    graph!.filter = newFilter;
+    setFilter(newFilter);
   };
 
   return (
@@ -96,7 +93,6 @@ function Graph() {
           onConfigUpdate={handleConfigUpdate}
           onFilterUpdate={handleFilterUpdate}
           tags={graph.getTags()}
-          onTagSelect={handleTagSelect}
         />
         <D3Graph
           config={config}

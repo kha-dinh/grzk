@@ -48,7 +48,9 @@ export class GraphVisualizer {
     this.graph.applyFilters();
     this.simulation.nodes(this.graph.getFilteredNodes());
     this.simulation
-      .alphaDecay(0.1).velocityDecay(0.15)
+      .alphaDecay(0.05)
+      .velocityDecay(0.3)
+      .alpha(1)
       .restart();
 
     this.simulation
@@ -290,19 +292,12 @@ export class GraphVisualizer {
 
     const handleClick = (e: any, d: ZkNode) => {
       // Reset other selection
-
-
       // const connectedLinks = this.graph.getConnectedEdges(d);
 
       // connectedNodes.forEach((n) => {
       //   if (n) n.active = true;
       // })
-      if (this.graph.filter.selectedNode == d) {
-        this.graph.filter.selectedNode = undefined;
-      }
-      else {
-        this.graph.filter.selectedNode = d;
-      }
+      this.graph.toggleSelectNode(d)
       this.graph.applyFilters();
       this.render();
       this.setupSimulation();
@@ -370,8 +365,7 @@ const D3Graph = ({
   }, [graphViz, config]);
 
   useEffect(() => {
-    if (!graphViz || !filter) return;
-    graphViz.graph.setFilter(filter);
+    if (!graphViz) return;
     graphViz.render();
     // Filter changes nodes shown => change simulation
     graphViz.setupSimulation();
