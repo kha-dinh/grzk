@@ -1,7 +1,9 @@
 import * as d3 from "d3";
 import { ZkNode, ZkGraph, ZkEdge, GraphFilter } from "./Graph";
+import { useTheme } from "next-themes";
 import { GraphConfig } from "./graphConfig";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type SvgSelection = d3.Selection<any, any, any, undefined>;
 export class GraphVisualizer {
@@ -15,11 +17,13 @@ export class GraphVisualizer {
   onScaleUpdate: (arg: number) => void;
   onNodeSelect: (node: ZkNode) => void;
 
-  constructor(svg: SvgSelection, config: GraphConfig, graph: ZkGraph,
+  constructor(
+    svg: SvgSelection,
+    config: GraphConfig,
+    graph: ZkGraph,
     onScaleUpdate: (arg: number) => void,
-    onNodeSelect: (node: ZkNode) => void
+    onNodeSelect: (node: ZkNode) => void,
   ) {
-
     this.svg = svg;
     this.config = config;
     this.graph = graph;
@@ -43,20 +47,17 @@ export class GraphVisualizer {
   }
 
   setupSimulation() {
-    if (!this.links || !this.nodes)
-      return;
+    if (!this.links || !this.nodes) return;
     this.graph.applyFilters();
     this.simulation.nodes(this.graph.getFilteredNodes());
-    this.simulation
-      .alphaDecay(0.05)
-      .velocityDecay(0.3)
-      .alpha(1)
-      .restart();
+    this.simulation.alphaDecay(0.05).velocityDecay(0.3).alpha(1).restart();
 
     this.simulation
       .force("x", d3.forceX().strength(this.config.force.centerForce))
       .force("y", d3.forceY().strength(this.config.force.centerForce))
-      .force("repel", d3.forceManyBody().strength(this.config.force.repelForce),
+      .force(
+        "repel",
+        d3.forceManyBody().strength(this.config.force.repelForce),
       );
 
     // Pull force between two nodes
@@ -76,8 +77,7 @@ export class GraphVisualizer {
 
     // Update position on tick
     this.simulation.on("tick.links", () => {
-      this.links!
-        .attr("x1", (d) => d.source.x!)
+      this.links!.attr("x1", (d) => d.source.x!)
         .attr("y1", (d) => d.source.y!)
         .attr("x2", (d) => d.target.x!)
         .attr("y2", (d) => d.target.y!);
@@ -118,7 +118,7 @@ export class GraphVisualizer {
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", this.config.link.stroke)
+      .attr("stroke", "hsl(var(--foreground))")
       .attr("stroke-opacity", this.config.link.opacity)
       .attr("stroke-width", 1 + "px");
 
@@ -137,33 +137,29 @@ export class GraphVisualizer {
       .append("text")
       .attr("dy", (d) => d.radius + this.config.node.fontSize)
       .attr("text-anchor", "middle")
-      .style("fill", this.config.node.textColor)
+      // .classed("text-foreground", true)
+      .attr("fill", "hsl(var(--foreground))")
       .style("font-size", `${this.config.node.fontSize}px`)
       .text((d) => d.data.title);
 
     container
       .append("circle")
       .attr("r", (d) => d.radius)
-      .attr("fill", (d) => d.fill.normal);
+      .attr("fill", "hsl(var(--foreground))");
+    // .classed("text-foreground", true);
 
-    const selectedNode =
-      this.zoomGroup
-        .selectAll(".nodes g")
-        .filter(
-          (n: any) =>
-            n == this.graph.filter.selectedNode
-        );
+    const selectedNode = this.zoomGroup
+      .selectAll(".nodes g")
+      .filter((n: any) => n == this.graph.filter.selectedNode);
     selectedNode
       .select("text")
       .style("font-size", `${this.config.node.fontSize * 1.2}px`)
-      .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2)
-      ;
-
+      .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2);
     selectedNode
       .select("circle")
       .attr("r", (d: any) => d.radius * 1.2)
-      .attr("fill", (d: any) => d.fill.highlight);
-
+      .attr("fill", "hsl(var(--chart-1))");
+    // .classed("text-foreground", true);
 
     // Add labels to nodes with updated positioning and color
 
@@ -205,7 +201,6 @@ export class GraphVisualizer {
     // if hovering over the circle
     container.call(drag);
 
-
     const mouseOver = (event: any, d: ZkNode) => {
       if (event.target.tagName !== "circle") return;
 
@@ -215,80 +210,69 @@ export class GraphVisualizer {
       let nodes = this.zoomGroup.selectAll(".nodes g").transition();
 
       // Style the the hovered node
-      const selectedNode =
-        nodes.filter(
-          (n: any) =>
-            n.path === d.path
-        );
+      const selectedNode = nodes.filter((n: any) => n.path === d.path);
       selectedNode
         .select("text")
         .style("font-size", `${this.config.node.fontSize * 1.2}px`)
-        .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2)
-        ;
+        .attr("dy", (d: any) => (d.radius + this.config.node.fontSize) * 1.2);
 
-      selectedNode
-        .select("circle")
-        .attr("r", (d: any) => d.radius * 1.2)
+      selectedNode.select("circle").attr("r", (d: any) => d.radius * 1.2);
 
-      nodes.filter(
-        (n: any) =>
-          n.path === d.path ||
-          connectedNodes!.some((c: any) => c.path === n.path),
-      )
+      nodes
+        .filter((n: any) => connectedNodes.some((c: any) => c.path === n.path))
         .style("opacity", 1)
         .select("circle")
-        .style("fill", (n: any) => n.fill.highlight)
+        .style("fill", "hsl(var(--chart-1))");
 
       // Dim remaining nodes
-      nodes.filter((n: any) =>
-        !connectedNodes.includes(n) && n.path != d.path
-      ).style("opacity", this.config.node.dimOpacity);
+      nodes
+        .filter((n: any) => !connectedNodes.includes(n) && n.path != d.path)
+        .style("opacity", this.config.node.dimOpacity);
       // Dim all links
-      let links = this.zoomGroup
-        .selectAll(".links line")
-        .transition()
-
+      let links = this.zoomGroup.selectAll(".links line").transition();
 
       // Dim non-connected links
-      links.filter((l: any) => !connectedLinks.includes(l))
+      links
+        .filter((l: any) => !connectedLinks.includes(l))
         .style("stroke-opacity", this.config.link.dimOpacity)
         .style("stroke", this.config.link.stroke)
         .style("stroke-width", 1 + "px");
 
       // Highlight connected links
-      links.filter((l: any) => connectedLinks.includes(l))
+      links
+        .filter((l: any) => connectedLinks.includes(l))
         .style("stroke-opacity", this.config.link.highlightOpacity)
-        .style("stroke", this.config.link.highlight)
+        .style("stroke", "hsl(var(--chart-1))")
         .style("stroke-width", 2 + "px");
-    }
+    };
 
     const mouseOut = (event: any) => {
       // Only trigger if leaving the circle
       if (event.target.tagName !== "circle") return;
 
-      let nonSelected =
-        this.zoomGroup
-          .selectAll(".nodes g")
-          .filter((d) => d != this.graph.filter.selectedNode).transition()
+      let nonSelected = this.zoomGroup
+        .selectAll(".nodes g")
+        .filter((d) => d != this.graph.filter.selectedNode)
+        .transition();
       nonSelected
         .style("opacity", 1)
         .select("circle")
-        .style("fill", (d: any) => d.fill.normal)
+        .style("fill", "hsl(var(--foreground))")
         .attr("r", (d: any) => d.radius);
 
       nonSelected
         .select("text")
-        .attr("dy", (d: any) => (d.radius + this.config.node.fontSize))
-        .style("font-size", `${this.config.node.fontSize}px`)
+        .attr("dy", (d: any) => d.radius + this.config.node.fontSize)
+        .style("font-size", `${this.config.node.fontSize}px`);
 
       // Reset all links
       this.zoomGroup
         .selectAll(".links line")
         .transition()
         .style("stroke-opacity", this.config.link.opacity)
-        .style("stroke", this.config.link.stroke)
+        .style("stroke", "hsl(var(--foreground))")
         .style("stroke-width", 1 + "px");
-    }
+    };
 
     const handleClick = (e: PointerEvent, d: ZkNode) => {
       // Reset other selection
@@ -297,23 +281,23 @@ export class GraphVisualizer {
       // connectedNodes.forEach((n) => {
       //   if (n) n.active = true;
       // })
-      this.graph.toggleSelectNode(d)
+      this.graph.toggleSelectNode(d);
       this.graph.applyFilters();
       this.render();
       this.setupSimulation();
-    }
+    };
     const handleRightClick = (e: PointerEvent, d: ZkNode) => {
       e.preventDefault();
       this.onNodeSelect(d);
-    }
+    };
 
     // Node hovering
-    container.on("mouseover", mouseOver)
+    container
+      .on("mouseover", mouseOver)
       .on("contextmenu", handleRightClick)
       .on("click", handleClick)
       .on("mouseout", mouseOut);
   }
-
 }
 
 const D3Graph = ({
@@ -333,15 +317,17 @@ const D3Graph = ({
 }) => {
   const refSvg = useRef(null);
   const [graphViz, setGraphViz] = useState<GraphVisualizer | undefined>();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!graphViz) {
       const svg = d3.select(refSvg.current);
-      const graphViz = new GraphVisualizer(svg,
+      const graphViz = new GraphVisualizer(
+        svg,
         config,
         graph,
         onScaleUpdate,
-        onNodeSelect
+        onNodeSelect,
       );
       graphViz.setupZoom();
       setGraphViz(graphViz);
