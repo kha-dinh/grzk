@@ -67,6 +67,91 @@ const GraphControlCollapsible = ({
   );
 };
 
+const ConfigSlider = ({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max = 1,
+  step = 0.1,
+  className,
+}: {
+  label: string;
+  value: number;
+  onChange: any;
+  min: number;
+  max: number;
+  step: number;
+  className?: string;
+}) => {
+  return (
+    <div className={`w-full ${className ? className : ""}`}>
+      <Label className="block text-xs mb-2 mt-2">
+        {label}: {value}
+      </Label>
+      <Slider
+        min={min}
+        max={max}
+        step={step}
+        value={[value]}
+        onValueChange={(v) => onChange(v[0])}
+        className="w-full"
+      />
+    </div>
+  );
+};
+
+const ForceConfiguration = ({
+  config,
+  handleSliderChange,
+}: {
+  config: GraphConfig;
+  handleSliderChange: (a: string, b: string, c: any) => void;
+}) => {
+  const sliderConfigs = [
+    {
+      label: "Center Force",
+      value: config.force.centerForce,
+      onChange: (v: number) => handleSliderChange("force", "centerForce", v),
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    {
+      label: "Repel Force",
+      value: config.force.repelForce,
+      onChange: (v: number) => handleSliderChange("force", "repelForce", v),
+      min: -5000,
+      max: 0,
+      step: 50,
+    },
+    {
+      label: "Link Force",
+      value: config.force.linkForce,
+      onChange: (v: number) => handleSliderChange("force", "linkForce", v),
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    {
+      label: "Link Distance",
+      value: config.force.linkDistance,
+      onChange: (v: number) => handleSliderChange("force", "linkDistance", v),
+      min: 10,
+      max: 200,
+      step: 5,
+    },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {sliderConfigs.map((sliderConfig) => (
+        <ConfigSlider key={sliderConfig.label} {...sliderConfig} />
+      ))}
+    </div>
+  );
+};
+
 const ConfigControl = ({
   tags,
   config,
@@ -327,59 +412,10 @@ const ConfigControl = ({
               title="Force"
               sectionName="force"
             >
-              <Label className="block text-xs mb-2 mt-2">
-                Center Force: {config.force.centerForce}
-              </Label>
-              <Slider
-                max={1}
-                step={0.1}
-                value={[config.force.centerForce]}
-                onValueChange={(v) =>
-                  handleSliderChange("force", "centerForce", v[0])
-                }
-                className="w-full"
-              />
-
-              <Label className="block text-xs mb-2 mt-2">
-                Repel Force: {config.force.repelForce}
-              </Label>
-              <Slider
-                min={-5000}
-                max={0}
-                step={50}
-                value={[config.force.repelForce]}
-                onValueChange={(v) =>
-                  handleSliderChange("force", "repelForce", v[0])
-                }
-                className="w-full"
-              />
-
-              <Label className="block text-xs mb-2">
-                Link Force: {config.force.linkForce}
-              </Label>
-              <Slider
-                max={1}
-                step={0.1}
-                value={[config.force.linkForce]}
-                onValueChange={(v) =>
-                  handleSliderChange("force", "linkForce", v[0])
-                }
-                className="w-full"
-              />
-
-              <Label className="block text-xs mb-2">
-                Link Distance: {config.force.linkDistance}
-              </Label>
-              <Slider
-                min={10}
-                max={200}
-                step={5}
-                value={[config.force.linkDistance]}
-                onValueChange={(v) =>
-                  handleSliderChange("force", "linkDistance", v[0])
-                }
-                className="w-full"
-              />
+              <ForceConfiguration
+                config={config}
+                handleSliderChange={handleSliderChange}
+              ></ForceConfiguration>
             </GraphControlCollapsible>
             <GraphControlCollapsible
               openSection={expandedSections.nodes}
