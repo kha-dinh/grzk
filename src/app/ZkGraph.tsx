@@ -17,10 +17,10 @@ function Graph() {
   );
 
   useEffect(() => {
-    localStorage.setItem("config", JSON.stringify(config));
+    window.localStorage.setItem("config", JSON.stringify(config));
   }, [config]);
   useEffect(() => {
-    localStorage.setItem("filter", JSON.stringify(filter));
+    window.localStorage.setItem("filter", JSON.stringify(filter));
   }, [filter]);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ function Graph() {
         graph.filter = filter;
       }
       setGraph(graph);
-
+      setFilter(filter);
     }
     fetchData();
   }, []);
@@ -48,19 +48,23 @@ function Graph() {
       ...config,
       zoom: {
         ...config.zoom,
-        defaultScale: scale
-      }
-    }
+        defaultScale: scale,
+      },
+    };
     setConfig(newConfig);
   };
 
   const handleNodeSelect = (node: ZkNode) => {
     switch (node.type) {
       case ZkNodeType.NOTE:
-        let file = node.data.absPath
+        let file = node.data.absPath;
         if (file) {
           const request = new XMLHttpRequest();
-          request.open("GET", "http://localhost:3000/api/open?file=" + file, false);
+          request.open(
+            "GET",
+            "http://localhost:3000/api/open?file=" + file,
+            false,
+          );
           request.send();
         } else {
           console.log(`File for ${node.path} not found`);
@@ -70,37 +74,36 @@ function Graph() {
         // let newTags = [{ value: node.path, label: node.path }]
         // handleTagSelect(newTags);
         break;
-
     }
-
-  }
+  };
 
   const handleFilterUpdate = (newFilter: GraphFilter) => {
     setFilter(newFilter);
     graph!.filter = newFilter;
   };
 
-  return (
-    graph ?
-      <>
-        <ConfigControl
-          showTitle={showTitle}
-          onShowTitle={setShowTitle}
-          config={config}
-          filter={filter}
-          onConfigUpdate={handleConfigUpdate}
-          onFilterUpdate={handleFilterUpdate}
-          tags={graph.getTags()}
-        />
-        <D3Graph
-          config={config}
-          filter={filter}
-          graph={graph}
-          showTitle={showTitle}
-          onScaleUpdate={handleZoomUpdate}
-          onNodeSelect={handleNodeSelect}
-        ></D3Graph>
-      </> : <></>
+  return graph ? (
+    <>
+      <ConfigControl
+        showTitle={showTitle}
+        onShowTitle={setShowTitle}
+        config={config}
+        filter={graph.filter}
+        onConfigUpdate={handleConfigUpdate}
+        onFilterUpdate={handleFilterUpdate}
+        tags={graph.getTags()}
+      />
+      <D3Graph
+        config={config}
+        filter={graph.filter}
+        graph={graph}
+        showTitle={showTitle}
+        onScaleUpdate={handleZoomUpdate}
+        onNodeSelect={handleNodeSelect}
+      ></D3Graph>
+    </>
+  ) : (
+    <></>
   );
 }
 

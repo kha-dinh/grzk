@@ -1,6 +1,7 @@
-
 export const tryGetStored = (name: string, defaultValue: any) => {
-  return localStorage.getItem(name)
-    ? JSON.parse(localStorage.getItem(name)!)
+  if (typeof window === "undefined") return defaultValue;
+
+  return window.localStorage.getItem(name)
+    ? JSON.parse(window.localStorage.getItem(name)!)
     : defaultValue;
 };

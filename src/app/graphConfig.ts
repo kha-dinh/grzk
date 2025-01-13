@@ -52,10 +52,11 @@ export type GraphConfig = {
   background: BackgroundConfig;
 };
 
-const TEXTCOLOR = "#aaaab3"
-const TEXTCOLOR2 = "#bbbbc6"
-const BACKGROUND = "#151515"
-const HIGHLIGHT1 = "#a78af9"
+// const TEXTCOLOR = "#aaaab3"
+const TEXTCOLOR = "#var(--foreground)";
+const TEXTCOLOR2 = "#bbbbc6";
+const BACKGROUND = "#var(--background)";
+const HIGHLIGHT1 = "#a78af9";
 export const defaultConfig: GraphConfig = {
   node: {
     baseRadius: 14,
