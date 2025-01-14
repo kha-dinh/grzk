@@ -11,6 +11,11 @@ import {
   ChevronsUpDown,
   Sun,
   Moon,
+  ChevronsDown,
+  ChevronsUp,
+  RotateCcw,
+  RotateCcwIcon,
+  Download,
 } from "lucide-react";
 import { defaultConfig, GraphConfig } from "./graphConfig";
 import MultipleSelector, { Option } from "@/components/ui/multi-select";
@@ -27,6 +32,7 @@ import { GraphFilter, TagData } from "./Graph";
 import { tryGetStored } from "./Utils";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 const GraphControlCollapsible = ({
   children,
@@ -53,15 +59,29 @@ const GraphControlCollapsible = ({
         className="w-full"
       >
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between py-1">
             <h4 className="text-sm font-semibold">{title}</h4>
-            <Button variant="ghost" size="sm" className="w-9 p-0">
-              <ChevronsUpDown className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="w-8 p-0 bg-red">
+              {!openSection ? (
+                <ChevronsDown className="h-4 w-4" />
+              ) : (
+                <ChevronsUp className="h-4 w-4" />
+              )}
               <span className="sr-only">Toggle</span>
             </Button>
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent>
+        <CollapsibleContent
+          className={cn(
+            "text-popover-foreground outline-none\
+            data-[state=open]:animate-in data-[state=closed]:animate-out\
+            data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0\
+            data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95\
+            data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2\
+            data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2\
+            ",
+          )}
+        >
           <div className="grid pl-2">{children}</div>
         </CollapsibleContent>
       </Collapsible>
@@ -87,7 +107,7 @@ const ConfigSlider = ({
   className?: string;
 }) => {
   return (
-    <div className={`w-[90%] ${className ? className : ""}`}>
+    <div className={`w-[95%] ${className ? className : ""}`}>
       <Label className="block text-xs mb-2 mt-2">
         {label}: {value}
       </Label>
@@ -106,6 +126,7 @@ const ConfigSlider = ({
 const ForceConfiguration = ({
   config,
   handleSliderChange,
+  className = "",
 }: {
   config: GraphConfig;
   handleSliderChange: <Category extends keyof GraphConfig>(
@@ -113,6 +134,7 @@ const ForceConfiguration = ({
     b: string,
     c: any,
   ) => void;
+  className: string;
 }) => {
   const sliderConfigs = [
     {
@@ -150,7 +172,7 @@ const ForceConfiguration = ({
   ];
 
   return (
-    <div className="space-y-2">
+    <div className={`${className}`}>
       {sliderConfigs.map((sliderConfig) => (
         <ConfigSlider key={sliderConfig.label} {...sliderConfig} />
       ))}
@@ -165,6 +187,7 @@ const ConfigControl = ({
   onConfigUpdate,
   onFilterUpdate,
   onShowTitle,
+  onDownloadFile,
   showTitle,
 }: {
   showTitle: boolean;
@@ -173,6 +196,7 @@ const ConfigControl = ({
   filter: GraphFilter;
   onFilterUpdate: any;
   onShowTitle: any;
+  onDownloadFile: any;
   tags?: Map<string, TagData>;
 }) => {
   const { theme, setTheme } = useTheme();
@@ -312,7 +336,7 @@ const ConfigControl = ({
     >
       <Card
         suppressHydrationWarning
-        className="absolute shadow-lg  backdrop-blur-sm"
+        className="absolute shadow-lg bg-accent backdrop-blur-sm"
         style={{
           left: position.x,
           top: position.y,
@@ -344,6 +368,7 @@ const ConfigControl = ({
           <CardContent className="p-4">
             <div className="flex justify-between">
               <Button
+                title="Toggle light/dark theme"
                 variant="outline"
                 onClick={() =>
                   theme === "dark" ? setTheme("light") : setTheme("dark")
@@ -352,11 +377,31 @@ const ConfigControl = ({
               >
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
               </Button>
 
-              <Button variant="outline" onClick={handleReset} size="sm">
-                Reset default
+              <Button
+                title="Export graph"
+                variant="outline"
+                onClick={onDownloadFile}
+                size="sm"
+              >
+                <Download className="h-[1.2rem] w-[1.2rem]" />
+              </Button>
+              <Button
+                title="Reset to defaults"
+                variant="outline"
+                // onClick={handleReset}
+                size="sm"
+              >
+                <RotateCcw className="h-[1.2rem] w-[1.2rem]" />
+              </Button>
+              <Button
+                title="Reset to defaults"
+                variant="outline"
+                onClick={handleReset}
+                size="sm"
+              >
+                <RotateCcw className="h-[1.2rem] w-[1.2rem]" />
               </Button>
             </div>
             <div className="py-2 flex space-x-4 justify-between items-center">
@@ -380,22 +425,22 @@ const ConfigControl = ({
               openSection={expandedSections.filter}
               toggleSection={toggleSection}
               sectionName="filter"
-              title="Filter"
+              title="Filters"
             >
-              <div className="grid gap-2">
+              <div className="grid gap-2 px-2">
                 <Input
                   type="text"
                   placeholder="Title"
                   value={filter.filterString}
                   onChange={(e) => onFilterStringUpdate(e.target.value)}
-                  className="w-full h-8 text-sm"
+                  className="w-full h-8 text-sm bg-background"
                 />
                 <MultipleSelector
                   options={processedTags}
                   onChange={handleTagSelect}
                   placeholder="Select tag(s)"
                   value={filter.tags}
-                  className="w-full h-fit text-sm"
+                  className="w-full h-fit text-sm bg-background"
                 ></MultipleSelector>
               </div>
             </GraphControlCollapsible>
@@ -411,10 +456,12 @@ const ConfigControl = ({
                 toggleSection={toggleSection}
                 title="Force"
                 sectionName="force"
+                className=""
               >
                 <ForceConfiguration
                   config={config}
                   handleSliderChange={handleSliderChange}
+                  className="space-y-2 pb-4 mr-2 pl-4 bg-background rounded border border-input shadow-sm"
                 ></ForceConfiguration>
               </GraphControlCollapsible>
               <GraphControlCollapsible
@@ -423,7 +470,7 @@ const ConfigControl = ({
                 title="Nodes"
                 sectionName="nodes"
               >
-                <Label className="block text-xs mb-2">
+                <Label className="block text-xs mb-2 ">
                   Radius: {config.node.baseRadius}
                 </Label>
                 <Slider
