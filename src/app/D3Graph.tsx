@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { GraphConfig } from "./graphConfig";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { tryGetStored } from "./Utils";
 
 type SvgSelection = d3.Selection<any, any, any, undefined>;
 export class GraphVisualizer {
@@ -23,11 +24,18 @@ export class GraphVisualizer {
     graph: ZkGraph,
     onScaleUpdate: (arg: number) => void,
     onNodeSelect: (node: ZkNode) => void,
+    zoomGroupTransform?: string,
   ) {
     this.svg = svg;
     this.config = config;
     this.graph = graph;
+    this.svg.select(".zoom-group").remove();
+
     this.zoomGroup = this.svg.append("g").attr("class", "zoom-group");
+
+    // if (zoomGroupTransform)
+    //   this.zoomGroup.attr("transform", zoomGroupTransform);
+    // this.zoomGroup = this.svg.select("g .zoom-group");
     this.simulation = d3.forceSimulation();
     this.onScaleUpdate = onScaleUpdate;
     this.onNodeSelect = onNodeSelect;
@@ -85,25 +93,41 @@ export class GraphVisualizer {
   }
 
   setupZoom() {
-    const width = this.svg.node().getBoundingClientRect().width;
-    const height = this.svg.node().getBoundingClientRect().height;
-
-    const zoom = d3
+    let zoom = d3
       .zoom()
       .scaleExtent([this.config.zoom.min, this.config.zoom.max])
       .on("zoom", (event) => {
         this.zoomGroup.attr("transform", event.transform);
-        // this.onScaleUpdate(1 - event.transform.k)
+        console.log(event.transform);
+        localStorage.setItem(
+          "zoomGroupTransform",
+          JSON.stringify({
+            k: event.transform.k,
+            x: event.transform.x,
+            y: event.transform.y,
+          }),
+        );
       });
 
-    this.svg
-      .call(zoom)
-      .call(
+    // Apply zoom behavior
+    this.svg.call(zoom);
+
+    // Load and apply cached transform if it exists
+    const savedTransform = localStorage.getItem("zoomGroupTransform");
+    if (savedTransform) {
+      const { k, x, y } = JSON.parse(savedTransform);
+      const transform = d3.zoomIdentity.translate(x, y).scale(k);
+      this.svg.call(zoom.transform, transform);
+    } else {
+      const width = this.svg.node().getBoundingClientRect().width;
+      const height = this.svg.node().getBoundingClientRect().height;
+      this.svg.call(
         zoom.transform,
         d3.zoomIdentity
           .translate(width / 2, height / 2)
           .scale(this.config.zoom.defaultScale),
       );
+    }
   }
 
   showHideTitles(showTitle: boolean) {
@@ -166,10 +190,7 @@ export class GraphVisualizer {
     // Add tooltips
     container
       .append("title")
-      .text(
-        (d) =>
-          `${d.data.title}\nIn Edges: ${d.inEdges}\nOut Edges: ${d.outEdges}\nTags: ${d.data.tags ? d.data.tags.length : 0}`,
-      );
+      .text((d) => `Left-click: Select node\nRight-click: Open note`);
 
     this.simulation.on("tick.nodes", () => {
       container.attr("transform", (d) => `translate(${d.x}, ${d.y})`);
