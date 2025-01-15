@@ -8,13 +8,11 @@ import {
   GripVertical,
   Minimize2,
   Maximize2,
-  ChevronsUpDown,
   Sun,
   Moon,
   ChevronsDown,
   ChevronsUp,
   RotateCcw,
-  RotateCcwIcon,
   Download,
 } from "lucide-react";
 import { defaultConfig, GraphConfig } from "./graphConfig";
@@ -56,10 +54,10 @@ const GraphControlCollapsible = ({
         onOpenChange={() => {
           toggleSection(sectionName);
         }}
-        className="w-full"
+        className={`w-full ${className}`}
       >
         <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between py-1">
+          <div className="flex items-center justify-between py-0 h-6">
             <h4 className="text-sm font-semibold">{title}</h4>
             <Button variant="ghost" size="sm" className="w-8 p-0 bg-red">
               {!openSection ? (
@@ -82,7 +80,7 @@ const GraphControlCollapsible = ({
             ",
           )}
         >
-          <div className="grid pl-2">{children}</div>
+          <div className="grid pl-3">{children}</div>
         </CollapsibleContent>
       </Collapsible>
     </div>
@@ -96,18 +94,18 @@ const ConfigSlider = ({
   min = 0,
   max = 1,
   step = 0.1,
-  className,
+  className = "",
 }: {
   label: string;
   value: number;
-  onChange: any;
+  onChange: (v: number) => void;
   min: number;
   max: number;
   step: number;
   className?: string;
 }) => {
   return (
-    <div className={`w-[95%] ${className ? className : ""}`}>
+    <div className={`w-[95%] ${className}`}>
       <Label className="block text-xs mb-2 mt-2">
         {label}: {value}
       </Label>
@@ -211,13 +209,15 @@ const ConfigControl = ({
     [key: string]: boolean;
   }
 
-  const [expandedSections, setExpandedSections] = useState<Map>({
-    visualization: true,
-    force: true,
-    nodes: true,
-    zoom: true,
-    filter: true,
-  });
+  const [expandedSections, setExpandedSections] = useState<Map>(
+    tryGetStored("expandedSections", {
+      visualization: true,
+      force: true,
+      nodes: true,
+      zoom: true,
+      filter: true,
+    }),
+  );
 
   let processedTags: Option[] = [];
   if (tags)
@@ -235,6 +235,13 @@ const ConfigControl = ({
   useEffect(() => {
     window.localStorage.setItem("configPosition", JSON.stringify(position));
   }, [position]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      "expandedSections",
+      JSON.stringify(expandedSections),
+    );
+  }, [expandedSections]);
 
   const handleMouseDown = (e: any) => {
     if (e.target.closest(".handle")) {
@@ -450,13 +457,14 @@ const ConfigControl = ({
               toggleSection={toggleSection}
               sectionName="visualization"
               title="Visualization Configurations"
+              className="pt-2"
             >
               <GraphControlCollapsible
                 openSection={expandedSections.force}
                 toggleSection={toggleSection}
                 title="Force"
                 sectionName="force"
-                className=""
+                className="pt-0"
               >
                 <ForceConfiguration
                   config={config}
@@ -469,41 +477,41 @@ const ConfigControl = ({
                 toggleSection={toggleSection}
                 title="Nodes"
                 sectionName="nodes"
+                className="pt-2"
               >
-                <Label className="block text-xs mb-2 ">
-                  Radius: {config.node.baseRadius}
-                </Label>
-                <Slider
-                  min={5}
-                  max={30}
-                  step={1}
-                  value={[config.node.baseRadius]}
-                  onValueChange={(v) =>
-                    handleSliderChange("node", "baseRadius", v[0])
-                  }
-                  className="w-full"
-                />
+                <div className="space-y-2 pb-4 mr-2 pl-4 bg-background rounded border border-input shadow-sm">
+                  <ConfigSlider
+                    min={5}
+                    max={30}
+                    step={1}
+                    label="Radius"
+                    value={config.node.baseRadius}
+                    onChange={(v) =>
+                      handleSliderChange("node", "baseRadius", v)
+                    }
+                  ></ConfigSlider>
+                </div>
               </GraphControlCollapsible>
-              <GraphControlCollapsible
-                openSection={expandedSections.zoom}
-                toggleSection={toggleSection}
-                title="Zoom"
-                sectionName="zoom"
-              >
-                <Label className="block text-xs mb-2">
-                  Zoom: {config.zoom.defaultScale}
-                </Label>
-                <Slider
-                  min={config.zoom.min}
-                  max={config.zoom.max}
-                  step={0.05}
-                  value={[config.zoom.defaultScale]}
-                  onValueChange={(v) =>
-                    handleSliderChange("zoom", "defaultScale", v[0])
-                  }
-                  className="w-full"
-                />
-              </GraphControlCollapsible>
+              {/* <GraphControlCollapsible */}
+              {/*   openSection={expandedSections.zoom} */}
+              {/*   toggleSection={toggleSection} */}
+              {/*   title="Zoom" */}
+              {/*   sectionName="zoom" */}
+              {/*   className="pt-2" */}
+              {/* > */}
+              {/*   <div className="space-y-2 pb-4 mr-2 pl-4 bg-background rounded border border-input shadow-sm"> */}
+              {/*     <ConfigSlider */}
+              {/*       label="Zoom level" */}
+              {/*       min={config.zoom.min} */}
+              {/*       max={config.zoom.max} */}
+              {/*       step={0.05} */}
+              {/*       value={config.zoom.defaultScale} */}
+              {/*       onChange={(v) => */}
+              {/*         handleSliderChange("zoom", "defaultScale", v) */}
+              {/*       } */}
+              {/*     /> */}
+              {/*   </div> */}
+              {/* </GraphControlCollapsible> */}
             </GraphControlCollapsible>
           </CardContent>
         )}
